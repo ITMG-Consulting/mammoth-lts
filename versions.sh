@@ -67,7 +67,7 @@ for version in "${versions[@]}"; do
 	# historic suites first: like on Docker Hub they get the suite-less / "-alpine" tags (tools/tags.sh)
 	suites="$(printf '%s\n' ${historicSuites[$version]} $currentSuites | awk '!seen[$0]++' | paste -sd' ' -)"
 
-	export fullVersion url ascUrl sha256 extraVersion suites
+	export fullVersion url ascUrl sha256 extraVersion suites currentSuites
 	json="$(
 		jq <<<"$json" -c '
 			.[env.version] = {
@@ -77,6 +77,8 @@ for version in "${versions[@]}"; do
 				sha256: env.sha256,
 				extraVersion: env.extraVersion,
 				patches: true,
+				# maintained OS releases: the template builds against their system libraries where Sury does (PCRE)
+				currentSuites: (env.currentSuites | split(" ")),
 				variants: [
 					# order here controls the order of the library/ file
 					(env.suites | split(" ")[]) as $suite

@@ -29,6 +29,8 @@ in French; README/SECURITY are English (public project).
   pinned key `15058500A0235D97F5D10063B188E2B695BD4743`), php-src commits for what Sury lacks. Always excluded:
   packaging credits (0064/0065/0068 for 7.2) and **0144 DNS telemetry to telemetry.sury.org** (import aborts if a kept
   patch mentions telemetry/sury.org).
+- PCRE: system library on the current suites (`currentSuites` in versions.json, `system_pcre` in the template), like
+  Sury; bundled copy on historic suites and for 7.2 on trixie (no PCRE1 in Debian 13). Decided 2026-10-22.
 - No in-house security fixes: an issue neither php-src nor deb.sury.org fixed is documented, not patched (decided
   2026-10-22, e.g. the pdo_firebird `pname[64]` overflow). Build/compat fixes (gcc 14, libxml2 2.13...) are fine.
 - Version string: `PHP_EXTRA_VERSION="-pN"` (php -v → `7.2.34-p1`). Only `-pN` sorts above the release in
@@ -76,6 +78,7 @@ tools/import-php-src-commit.sh <v> <sha> <name> [GHSA]   # backport an official 
 ./versions.sh && ./apply-templates.sh   # regenerate
 python3 tools/security-report.py        # SECURITY.md (badges CVSS, dates, open advisories); update the README
                                         # "Security coverage" counts by hand
+tools/run-asan-tests.sh <v>             # ASan build + the series' own tests (CI job "asan", host needs vm.mmap_rnd_bits=28)
 tools/upstream-review.sh --diff         # official image (docker-library/php) commits since fork point 68549643 →
                                         # port to the template or record in upstream.reviewed; --sync-scripts for docker-php-*
 ```

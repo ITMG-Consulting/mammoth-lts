@@ -31,7 +31,7 @@ built here: use the official image.
 
 ## Security coverage
 
-### PHP 7.2 (`7.2.34-p2`)
+### PHP 7.2 (`7.2.34-p3`)
 
 Every php-src security advisory published since the 7.2.34 release (October 2020) is either fixed or triaged:
 
@@ -79,7 +79,7 @@ and source, and gives the reason for every advisory not fixed.
   affected (PHP does not decrypt RSA as a TLS client; the web server handles TLS). If your application decrypts RSA,
   use a trixie or alpine3.23 / 3.24 image, or switch to OAEP padding (`OPENSSL_PKCS1_OAEP_PADDING`).
 
-### PHP 7.4 (`7.4.33-p1`)
+### PHP 7.4 (`7.4.33-p2`)
 
 | | Advisories |
 | --- | --- |
@@ -159,6 +159,12 @@ Only the source step differs from upstream:
 
 PHP 7 also gets the compiler flags deb.sury.org uses for these versions on current toolchains (gcc 14/15, ICU 75+).
 
+On the current base images (alpine3.23 / 3.24, bookworm, trixie), PHP is built against the system PCRE library, as
+deb.sury.org does, instead of the copy bundled with php-src (PCRE 8.41 in 7.2, PCRE2 10.35 in 7.4), which no longer
+gets fixes once the branch is EOL: the distribution maintains it. PHP 7.2 on trixie keeps the bundled copy (Debian
+dropped PCRE1), and the historic suites keep it too, like the Docker Hub images. The PCRE headers are then part of
+`PHPIZE_DEPS`, since the installed PHP headers include them.
+
 ```
 ./versions.sh          # versions.json, from patches/*/series and the php.net releases API
 ./apply-templates.sh   # <version>/<suite>/<variant>/Dockerfile + build context (patches included)
@@ -204,6 +210,9 @@ CVSS and publication date, and the php-src advisories not covered yet.
   fails CI.
 - CI builds every variant, checks `php -v` / `PHP_VERSION`, `php-fpm -t`, and builds `intl`, `gd` and `bcmath` with
   `docker-php-ext-install`.
+- `tools/run-asan-tests.sh <version>` builds the patched sources with AddressSanitizer and runs the tests the patch
+  series adds or changes (the regression tests of the backported fixes): a backport that gives the right output but
+  still reads or writes out of bounds is reported. Informative CI job for now.
 - Without Docker: `tools/chroot-test/test-target.sh . 7.2/buster/fpm` builds a generated dir in a chroot of its base
   image (rootfs pulled from the Docker Hub registry) and runs the same smoke tests.
 

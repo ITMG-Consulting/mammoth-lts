@@ -1,3 +1,7 @@
+## 7.2.34-p3 (2026-10-22)
+
+- current suites (alpine3.23/3.24, bookworm) build against the system PCRE (--with-pcre-regex=/usr), like deb.sury.org: the PCRE 8.41 bundled with php-src 7.2 gets no fixes
+
 ## 7.2.34-p2 (2026-10-22)
 
 - 21 php-src security fixes deb.sury.org has not backported (9002-9022, see SECURITY.md); gcc 14 suites (alpine3.23/3.24, trixie) build with -fpermissive so configure detects getaddrinfo, pread/pwrite, ZEND_MM_ALIGNMENT... again

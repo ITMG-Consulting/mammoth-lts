@@ -26,7 +26,9 @@ ENV PHPIZE_DEPS \
 		libc-dev \
 		make \
 		pkg-config \
-		re2c
+		re2c \
+# the installed PHP headers include the system pcre headers
+		libpcre2-dev
 
 # persistent / runtime deps
 RUN set -eux; \
@@ -63,7 +65,7 @@ ENV PHP_LDFLAGS="-Wl,-O1 -pie"
 
 ENV GPG_KEYS 42670A7FE4D0441C8E4632349E4FDC074A4EF02D 5A52880781F755608BF815FC910DEB46F53EA312
 
-ENV PHP_VERSION 7.4.33-p1
+ENV PHP_VERSION 7.4.33-p2
 ENV PHP_URL="https://www.php.net/distributions/php-7.4.33.tar.xz" PHP_ASC_URL="https://www.php.net/distributions/php-7.4.33.tar.xz.asc"
 ENV PHP_SHA256="924846abf93bc613815c55dd3f5809377813ac62a9ec4eb3778675b82a27b927"
 
@@ -186,6 +188,7 @@ RUN set -eux; \
 # in PHP 7.4+, the pecl/pear installers are officially deprecated (requiring an explicit "--with-pear")
 		--with-pear \
 		\
+		--with-external-pcre \
 # bundled pcre does not support JIT on riscv64 until 10.41 (php 8.3+)
 # https://github.com/PCRE2Project/pcre2/commits/pcre2-10.41/src/sljit/sljitNativeRISCV_64.c
 # https://github.com/php/php-src/tree/php-8.3.0/ext/pcre/pcre2lib
@@ -201,10 +204,10 @@ RUN set -eux; \
 	; \
 # "php -v" / PHP_VERSION report the patch level of this build, e.g. 7.2.34-p3 (> 7.2.34 for version_compare() and composer)
 	sed -ri \
-		-e 's/^(#define PHP_EXTRA_VERSION ).*/\1"-p1"/' \
-		-e 's/^(#define PHP_VERSION "[0-9.]+).*/\1-p1"/' \
+		-e 's/^(#define PHP_EXTRA_VERSION ).*/\1"-p2"/' \
+		-e 's/^(#define PHP_VERSION "[0-9.]+).*/\1-p2"/' \
 		main/php_version.h; \
-	grep -q '^#define PHP_VERSION "7.4.33-p1"$' main/php_version.h; \
+	grep -q '^#define PHP_VERSION "7.4.33-p2"$' main/php_version.h; \
 	make -j "$(nproc)"; \
 	find -type f -name '*.a' -delete; \
 	make install; \

@@ -6,8 +6,14 @@
     "url": "https://www.php.net/distributions/php-7.2.34.tar.xz",
     "ascUrl": "https://www.php.net/distributions/php-7.2.34.tar.xz.asc",
     "sha256": "409e11bc6a2c18707dfc44bc61c820ddfd81e17481470f3405ee7822d8379903",
-    "extraVersion": "-p2",
+    "extraVersion": "-p3",
     "patches": true,
+    "currentSuites": [
+      "trixie",
+      "bookworm",
+      "alpine3.24",
+      "alpine3.23"
+    ],
     "variants": [
       "buster/cli",
       "buster/apache",
@@ -45,8 +51,14 @@
     "url": "https://www.php.net/distributions/php-7.4.33.tar.xz",
     "ascUrl": "https://www.php.net/distributions/php-7.4.33.tar.xz.asc",
     "sha256": "924846abf93bc613815c55dd3f5809377813ac62a9ec4eb3778675b82a27b927",
-    "extraVersion": "-p1",
+    "extraVersion": "-p2",
     "patches": true,
+    "currentSuites": [
+      "trixie",
+      "bookworm",
+      "alpine3.24",
+      "alpine3.23"
+    ],
     "variants": [
       "bullseye/cli",
       "bullseye/apache",

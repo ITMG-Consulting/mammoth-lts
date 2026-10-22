@@ -26,7 +26,9 @@ ENV PHPIZE_DEPS \
 		libc-dev \
 		make \
 		pkg-config \
-		re2c
+		re2c \
+# the installed PHP headers include the system pcre headers
+		libpcre3-dev
 
 # persistent / runtime deps
 RUN set -eux; \
@@ -63,7 +65,7 @@ ENV PHP_LDFLAGS="-Wl,-O1 -pie"
 
 ENV GPG_KEYS 1729F83938DA44E27BA0F4D3DBDB397470D12172 B1B44D8F021E4E2D6021E995DC9FF8D3EE5AF27F
 
-ENV PHP_VERSION 7.2.34-p2
+ENV PHP_VERSION 7.2.34-p3
 ENV PHP_URL="https://www.php.net/distributions/php-7.2.34.tar.xz" PHP_ASC_URL="https://www.php.net/distributions/php-7.2.34.tar.xz.asc"
 ENV PHP_SHA256="409e11bc6a2c18707dfc44bc61c820ddfd81e17481470f3405ee7822d8379903"
 
@@ -181,6 +183,7 @@ RUN set -eux; \
 # https://github.com/bwoebi/phpdbg-docs/issues/1#issuecomment-163872806 ("phpdbg is primarily a CLI debugger, and is not suitable for debugging an fpm stack.")
 		--disable-phpdbg \
 		\
+		--with-pcre-regex=/usr \
 # bundled pcre does not support JIT on riscv64 until 10.41 (php 8.3+)
 # https://github.com/PCRE2Project/pcre2/commits/pcre2-10.41/src/sljit/sljitNativeRISCV_64.c
 # https://github.com/php/php-src/tree/php-8.3.0/ext/pcre/pcre2lib
@@ -195,10 +198,10 @@ RUN set -eux; \
 	; \
 # "php -v" / PHP_VERSION report the patch level of this build, e.g. 7.2.34-p3 (> 7.2.34 for version_compare() and composer)
 	sed -ri \
-		-e 's/^(#define PHP_EXTRA_VERSION ).*/\1"-p2"/' \
-		-e 's/^(#define PHP_VERSION "[0-9.]+).*/\1-p2"/' \
+		-e 's/^(#define PHP_EXTRA_VERSION ).*/\1"-p3"/' \
+		-e 's/^(#define PHP_VERSION "[0-9.]+).*/\1-p3"/' \
 		main/php_version.h; \
-	grep -q '^#define PHP_VERSION "7.2.34-p2"$' main/php_version.h; \
+	grep -q '^#define PHP_VERSION "7.2.34-p3"$' main/php_version.h; \
 	make -j "$(nproc)"; \
 	find -type f -name '*.a' -delete; \
 	make install; \

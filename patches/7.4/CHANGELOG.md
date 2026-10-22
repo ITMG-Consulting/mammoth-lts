@@ -1,3 +1,7 @@
+## 7.4.33-p2 (2026-10-22)
+
+- current suites (alpine3.23/3.24, bookworm, trixie) build against the system PCRE2 (--with-external-pcre), like deb.sury.org: the PCRE2 10.35 bundled with php-src 7.4 gets no fixes
+
 ## 7.4.33-p1 (2026-10-22)
 
 Sury `1:7.4.33-31+0~20261021.121+debian13~1.gbpe9c428`.

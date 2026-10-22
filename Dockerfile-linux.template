@@ -35,6 +35,19 @@
 	def vid:
 		.version | version_id
 	;
+	def system_pcre:
+		# like deb.sury.org: the OS PCRE (maintained) instead of the copy bundled with an EOL php-src (frozen),
+		# on the currently supported suites only; PCRE1 (PHP < 7.3) is gone from Debian trixie
+		any(.currentSuites[]; . == env.suite)
+		and (vid >= ("7.3" | version_id) or is_alpine or env.suite == "bookworm")
+	;
+	def pcre_dev:
+		if vid >= ("7.3" | version_id) then
+			if is_alpine then "pcre2-dev" else "libpcre2-dev" end
+		else
+			if is_alpine then "pcre-dev" else "libpcre3-dev" end
+		end
+	;
 	def has_patches:
 		# patches/<version>/series: backported security fixes (tools/import-sury-patches.sh) + local build fixes
 		.patches // false
@@ -77,7 +90,7 @@ ENV PHPIZE_DEPS \
 		libc-dev \
 		make \
 		{{ if is_alpine then "pkgconf" else "pkg-config" end }} \
-		re2c
+		re2c{{ if system_pcre then " \\\n# the installed PHP headers include the system pcre headers\n\t\t" + pcre_dev else "" end }}
 
 # persistent / runtime deps
 {{ if is_alpine then ( -}}
@@ -500,6 +513,9 @@ RUN set -eux; \
 # in PHP 7.4+, the pecl/pear installers are officially deprecated (requiring an explicit "--with-pear")
 		--with-pear \
 		\
+{{ ) else "" end -}}
+{{ if system_pcre then ( -}}
+		{{ if vid >= ("7.3" | version_id) then "--with-external-pcre" else "--with-pcre-regex=/usr" end }} \
 {{ ) else "" end -}}
 {{ if vid < ("8.3" | version_id) then ( -}}
 # bundled pcre does not support JIT on riscv64 until 10.41 (php 8.3+)
