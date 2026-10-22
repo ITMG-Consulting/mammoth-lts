@@ -68,7 +68,7 @@ in French; README/SECURITY are English (public project).
 ## Resume / update routine
 
 ```
-tools/import-sury-patches.sh <v>        # new Sury revision: bumps -pN + CHANGELOG if patches changed; review the diff
+tools/import-sury-patches.sh <v>        # new Sury revision (weekly CI job "sury" = --check): bumps -pN + CHANGELOG if patches changed
 tools/advisory-coverage.py              # php-src advisories not covered → backport or triage
 tools/import-php-src-commit.sh <v> <sha> <name> [GHSA]   # backport an official fix (signed commits only)
 ./versions.sh && ./apply-templates.sh   # regenerate

@@ -9,13 +9,16 @@
 #   KEEP_FROM=0057               # every patch numbered >= KEEP_FROM is kept (new upstream fixes land at the end)
 #   KEEP_EXTRA="0047 0048"       # Debian build patches below KEEP_FROM that we still need
 #   EXCLUDE="0144"               # patches dropped on purpose (see README of the version)
+# --check only reports whether the kept patches differ from the imported ones (weekly CI job "sury").
 # Local patches (not from Sury) are listed in patches/<version>/local.series and appended to the series.
 set -Eeuo pipefail
 
 SURY_KEY_FPR='15058500A0235D97F5D10063B188E2B695BD4743'
 SURY_BASE='https://packages.sury.org/php'
 
-usage() { echo "usage: $0 <php-version>   e.g. $0 7.2" >&2; exit 1; }
+usage() { echo "usage: $0 [--check] <php-version>   e.g. $0 7.2" >&2; exit 1; }
+check=
+if [ "${1:-}" = '--check' ]; then check=1; shift; fi
 [ "$#" -eq 1 ] || usage
 version="$1"
 
@@ -83,6 +86,25 @@ for p in "${kept[@]}"; do
 		exit 1
 	fi
 done
+
+# --check (weekly CI): only report whether the kept patches differ from patches/<version>/, change nothing.
+# Sury rebuilds snapshots daily: a new version string alone (same patches) is not worth an import.
+if [ -n "$check" ]; then
+	changed=
+	for p in "${kept[@]}"; do
+		cmp -s "$patchdir/$p" "$dir/$p" || { echo "new or changed: $p"; changed=1; }
+	done
+	for f in "$dir"/0*.patch; do
+		[[ " ${kept[*]} " == *" ${f##*/} "* ]] || { echo "dropped: ${f##*/}"; changed=1; }
+	done
+	imported="$(awk -F': ' '$1 == "version" {print $2}' "$dir/SOURCE")"
+	if [ -n "$changed" ]; then
+		echo "$pkg: Sury $debVersion changes the patches imported from $imported: run $0 $version"
+		exit 1
+	fi
+	echo "$pkg: up to date (Sury $debVersion, imported $imported)"
+	exit 0
+fi
 
 fingerprint() { (cd "$dir" && grep -vsE '^\s*(#|$)' series | xargs -r sha256sum || true) 2> /dev/null | sha256sum; }
 old="$(mktemp)"
