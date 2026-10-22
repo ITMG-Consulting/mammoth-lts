@@ -32,7 +32,10 @@ in French; README/SECURITY are English (public project).
 - PCRE: system library on the current suites (`currentSuites` in versions.json, `system_pcre` in the template), like
   Sury; bundled copy on historic suites and for 7.2 on trixie (no PCRE1 in Debian 13). Decided 2026-10-22.
 - No in-house security fixes: an issue neither php-src nor deb.sury.org fixed is documented, not patched (decided
-  2026-10-22, e.g. the pdo_firebird `pname[64]` overflow). Build/compat fixes (gcc 14, libxml2 2.13...) are fine.
+  2026-10-22, e.g. the pdo_firebird `pname[64]` overflow). Build/compat fixes (gcc 14, libxml2 2.13...) are fine, and
+  so are fixes of bugs a backport itself introduces (ours or Sury's): patch locally, report to Sury privately
+  (ondrej@sury.org, Cc Remi Collet for 7.x adaptations; no private GitHub reporting), drop the patch once Sury ships
+  it. E.g. 7.2 9023 / 7.4 9003: the mysqlnd h35g/r6x9 backports freed a malformed row's fields twice before PHP 8.1.
 - Version string: `PHP_EXTRA_VERSION="-pN"` (php -v → `7.2.34-p1`). Only `-pN` sorts above the release in
   version_compare() and parses in Composer (`-eolN` sorts below and breaks Composer). N bumps when the applied PHP
   code changes (import with a diff, local patch); never for base-image-only rebuilds.

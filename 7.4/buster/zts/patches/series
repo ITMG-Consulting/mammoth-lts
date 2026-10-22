@@ -114,3 +114,4 @@
 0164-Avoid-state-corruption-via-bailout.patch
 9001-GHSA-w476-322c-wpvm-pdo-firebird-nul-sql-injection.patch
 9002-Fix-GH-14834-libxml2-2.13-entities-in-attributes.patch
+9003-mysqlnd-do-not-free-malformed-row-fields-twice.patch

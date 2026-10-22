@@ -1,3 +1,7 @@
+## 7.4.33-p3 (2026-10-22)
+
+- 9003: fix of the mysqlnd GHSA-h35g / GHSA-r6x9 backports (Sury 0101/0149): a malformed row's fields were freed twice (heap use-after-free reachable by a malicious MySQL server), found by the ASan job
+
 ## 7.4.33-p2 (2026-10-22)
 
 - current suites (alpine3.23/3.24, bookworm, trixie) build against the system PCRE2 (--with-external-pcre), like deb.sury.org: the PCRE2 10.35 bundled with php-src 7.4 gets no fixes

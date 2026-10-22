@@ -31,7 +31,7 @@ built here: use the official image.
 
 ## Security coverage
 
-### PHP 7.2 (`7.2.34-p3`)
+### PHP 7.2 (`7.2.34-p4`)
 
 Every php-src security advisory published since the 7.2.34 release (October 2020) is either fixed or triaged:
 
@@ -57,7 +57,9 @@ and source, and gives the reason for every advisory not fixed.
   errors, pdo_firebird NUL quoting, OpenSSL (wildcard out-of-bounds read, CN fallback after SAN mismatch), FastCGI
   IPv6 `allowed_clients` bypass, NUL bytes in hostnames and `dns_get_record()`, `XML_OPTION_SKIP_TAGSTART`
   out-of-bounds read, phar tar entry injection, `convert.*` filters info leak, `FILTER_SANITIZE_ENCODED` 0xFF.
-  Each backport carries the upstream tests, adapted to 7.2. For 20 of the 21, we reproduced the flaw on the unpatched
+  Each backport carries the upstream tests, adapted to 7.2. Patch 9023 fixes a double free that the mysqlnd
+  backports (9018 / 9019) introduce before PHP 8.1, found by the AddressSanitizer job.
+  For 20 of the 21, we reproduced the flaw on the unpatched
   code and checked that the fix removes it. The 21st (FILTER_SANITIZE_ENCODED) depends on uninitialised stack memory,
   so it cannot be reproduced reliably.
 - **Not affecting 7.2**: the vulnerable code does not exist in 7.2 (added in 7.3 to 8.4), Windows-only issues, and
@@ -79,7 +81,7 @@ and source, and gives the reason for every advisory not fixed.
   affected (PHP does not decrypt RSA as a TLS client; the web server handles TLS). If your application decrypts RSA,
   use a trixie or alpine3.23 / 3.24 image, or switch to OAEP padding (`OPENSSL_PKCS1_OAEP_PADDING`).
 
-### PHP 7.4 (`7.4.33-p2`)
+### PHP 7.4 (`7.4.33-p3`)
 
 | | Advisories |
 | --- | --- |
@@ -93,6 +95,9 @@ and source, and gives the reason for every advisory not fixed.
 - **deb.sury.org** backported almost every advisory to 7.4, up to the PHP 8.2.35 fixes. Its mysqlnd fix
   (GHSA-r6x9-5r99-36j7) is labelled "partial", but only because some upstream tests were adapted to 7.4: the C code
   is the whole upstream fix (29 of its tests fail without it).
+- **Fix of a deb.sury.org backport**: patch 9003, the mysqlnd fixes (GHSA-h35g-vwh6-m678, GHSA-r6x9-5r99-36j7)
+  freed a malformed row's fields twice before PHP 8.1 (heap use-after-free reachable by a malicious MySQL server),
+  found by the AddressSanitizer job.
 - **Our backport**: pdo_firebird NUL quoting (GHSA-w476-322c-wpvm), built and tested with Firebird 3 and 4 on
   Debian. Also php-src 67259e45 (GH-14834, not a security fix): without it, PEAR does not install with
   libxml2 ≥ 2.13 (alpine3.23 / 3.24).

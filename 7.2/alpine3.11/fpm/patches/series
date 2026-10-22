@@ -121,3 +121,4 @@
 9020-GHSA-hrwm-9436-5mv3-pgsql-escaping-error-checks.patch
 9021-GHSA-w476-322c-wpvm-pdo-firebird-nul-sql-injection.patch
 9022-GHSA-88hq-2827-7pg6-convert-filters-lbchars-nul.patch
+9023-mysqlnd-do-not-free-malformed-row-fields-twice.patch

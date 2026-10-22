@@ -45,12 +45,22 @@ zip="$(case "$version" in 7.[0-3]) echo --enable-zip ;; *) echo --with-zip ;; es
 	--enable-pcntl --enable-sockets --with-libdir=lib/x86_64-linux-gnu > configure.log 2>&1 || { tail -20 configure.log; exit 1; }
 make -j "$(nproc)" > make.log 2>&1 || { tail -30 make.log; exit 1; }
 
+# run-tests.php must not use the Zend allocator, whose pooled memory hides heap errors from ASan: PHP 7.4+ knows
+# --asan, older ones force USE_ZEND_ALLOC=1 unless running valgrind
+if grep -q "'--asan'" run-tests.php; then
+	asan=--asan
+else
+	asan=
+	sed -i "s/\$env\['USE_ZEND_ALLOC'\] = '1';/\$env['USE_ZEND_ALLOC'] = '0';/" run-tests.php
+	if grep -q "\$env\['USE_ZEND_ALLOC'\] = '1';" run-tests.php; then echo >&2 'error: run-tests.php still forces USE_ZEND_ALLOC=1'; exit 1; fi
+fi
+
 useradd -m tester 2> /dev/null || true
 chown -R tester /build
 mkdir -p /tmp/asan && chmod 1777 /tmp/asan
 su tester -c "cd /build && NO_INTERACTION=1 REPORT_EXIT_STATUS=0 USE_ZEND_ALLOC=0 ZEND_DONT_UNLOAD_MODULES=1 \
 	ASAN_OPTIONS=detect_leaks=0:log_path=/tmp/asan/report TEST_PHP_EXECUTABLE=/build/sapi/cli/php \
-	sapi/cli/php run-tests.php -q \$(cat asan-tests) > /build/tests.log 2>&1" || true
+	sapi/cli/php run-tests.php -q $asan \$(cat asan-tests) > /build/tests.log 2>&1" || true
 
 grep -E '^(Tests (failed|passed|skipped))' tests.log || true
 sed -n '/^FAILED TEST SUMMARY/,/^=====*$/p' tests.log | grep -oE '\[[^]]+\.phpt\]$' | tr -d '[]' | sort -u > failed || true
