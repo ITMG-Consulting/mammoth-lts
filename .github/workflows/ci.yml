@@ -115,6 +115,23 @@ jobs:
       - uses: actions/checkout@v5
       - run: docker run --rm -v "$PWD:/src:ro" alpine:3.23 /src/tools/run-php-tests.sh "${{ matrix.version }}"
 
+  asan:
+    needs: generate
+    if: needs.generate.outputs.versions != '[]'
+    strategy:
+      fail-fast: false
+      matrix:
+        version: ${{ fromJson(needs.generate.outputs.versions) }}
+    name: asan ${{ matrix.version }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      # ASan cannot map its shadow memory with the ASLR entropy of recent kernels
+      - run: sudo sysctl -w vm.mmap_rnd_bits=28
+      # informative until a first clean run, then make publish depend on it
+      - run: docker run --rm -v "$PWD:/src:ro" debian:bookworm /src/tools/run-asan-tests.sh "${{ matrix.version }}"
+        continue-on-error: true
+
   advisories:
     runs-on: ubuntu-latest
     steps:
