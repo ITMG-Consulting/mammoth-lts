@@ -32,7 +32,7 @@ jobs:
       dirs: ${{ steps.dirs.outputs.dirs }}
       versions: ${{ steps.dirs.outputs.versions }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
       - name: Generated files are up to date
@@ -70,7 +70,7 @@ jobs:
     name: ${{ matrix.dir }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Build
         run: docker build --pull --tag "test:${{ github.run_id }}" "${{ matrix.dir }}"
       - name: Smoke tests
@@ -88,9 +88,17 @@ jobs:
           # extensions users build on top of the image (pecl, docker-php-ext-*), exercise C++ (intl) and pkg-config detection (gd)
           case "${{ matrix.dir }}" in
             */alpine*) deps='apk add --no-cache icu-dev freetype-dev libjpeg-turbo-dev libpng-dev' ;;
-            *) deps='apt-get update && apt-get install -y --no-install-recommends libicu-dev libfreetype-dev libjpeg-dev libpng-dev' ;;
+            # libfreetype-dev only exists since bullseye (libfreetype6-dev before)
+            *) deps='apt-get update && apt-get install -y --no-install-recommends libicu-dev libjpeg-dev libpng-dev $(apt-cache show libfreetype-dev > /dev/null 2>&1 && echo libfreetype-dev || echo libfreetype6-dev)' ;;
           esac
-          docker run --rm "$img" sh -euxc "$deps && docker-php-ext-install -j\$(nproc) intl gd bcmath && php -m | grep -E '^(intl|gd|bcmath)$' | wc -l | grep -qx 3"
+          # gd < 7.4 takes --with-freetype-dir, 7.4+ --with-freetype
+          docker run --rm "$img" sh -euxc "
+            $deps
+            docker-php-ext-configure gd --with-freetype-dir=/usr --with-jpeg-dir=/usr 2> /dev/null || docker-php-ext-configure gd --with-freetype --with-jpeg
+            docker-php-ext-install -j\$(nproc) intl gd bcmath
+            php -m | grep -E '^(intl|gd|bcmath)$' | wc -l | grep -qx 3
+            php -r 'exit(gd_info()[\"FreeType Support\"] ? 0 : 1);'
+          "
 
   php-tests:
     needs: generate
@@ -102,13 +110,13 @@ jobs:
     name: make test ${{ matrix.version }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - run: docker run --rm -v "$PWD:/src:ro" alpine:3.23 /src/tools/run-php-tests.sh "${{ matrix.version }}"
 
   advisories:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       # informative: a new php-src advisory must be triaged (patches/<version>/triage) or backported
       - run: python3 tools/advisory-coverage.py
         continue-on-error: true
@@ -125,7 +133,7 @@ jobs:
       contents: read
       packages: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: docker/login-action@v3
         with:
           registry: ghcr.io
