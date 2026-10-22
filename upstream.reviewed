@@ -1,0 +1,24 @@
+# docker-library/php commits after our fork point, triaged (tools/upstream-review.sh)
+# <sha> ported|not-applicable|pending: reason
+# base 68549643
+9cf5f245 not-applicable: removes 8.1 upstream, we keep it
+91d35430 not-applicable: post 8.1 EOL cleanup upstream
+f26909cd not-applicable: fpm listen moved to its own section for 8.2+; would change the fpm config of the Docker Hub images we replace
+6485b53a not-applicable: --sysconfdir and fpm config layout for 8.2+; same reason
+e5de0e8e not-applicable: [www] compatibility section, follows f26909cd (8.2-8.5)
+3a74db04 not-applicable: comment typo
+7a6643ee not-applicable: fixes a conditional added by e5de0e8e
+168b4293 not-applicable: removes temporary code from f26909cd
+536691f7 not-applicable: drops --with-pear for 8.6
+fdcffeae not-applicable: removes an 8.1-only conditional
+2f6224c1 not-applicable: adds 8.6 RC
+1fec3eef not-applicable: SSE for i386 builds, we only build amd64
+2e430cd1 not-applicable: 8.6+ images are always ZTS
+9dac3d04 not-applicable: only the --enable-pic branch (8.6+); our branches use --with-pic
+6c91a369 not-applicable: removes 8.1 special cases upstream
+bc5b3fdc not-applicable: refactor of upstream versions.sh (ours is rewritten for EOL branches)
+51f293de pending: Alpine 3.24 added (and 3.22 dropped) upstream; our "current" suites are alpine3.23/3.22, test PHP 7.x on 3.24 (ICU 78) before adding it
+b4e4077c not-applicable: pre-release (RC) build URL, we only build releases
+b0dbbcc5 not-applicable: cachebuster on php.net API calls, already in our versions.sh
+319d5ab7 not-applicable: arm32v6 skip for 8.6 alpha (generate-stackbrew-library.sh, not used here)
+e990b2ed not-applicable: arm32v6 skip for 8.6 beta (same)

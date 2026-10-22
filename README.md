@@ -102,6 +102,12 @@ PHP 7 also gets the compiler flags deb.sury.org uses for these versions on curre
    It also covers the backport branches the PHP security team publishes itself for critical issues
    (e.g. `PHP-7.4-CVE-2026-109618-109619`).
 
+3. **[docker-library/php](https://github.com/docker-library/php)** — the official image keeps improving its template and
+   scripts (build fixes, new base images). `tools/upstream-review.sh` lists its commits since our fork point that are
+   not triaged yet in [`upstream.reviewed`](upstream.reviewed) (`ported`, `not-applicable` or `pending`, with the
+   reason); `--diff` shows them, `--sync-scripts` copies the version-independent `docker-php-*` scripts as-is.
+   CI runs it weekly.
+
 [SECURITY.md](SECURITY.md) (`tools/security-report.py`) lists, per branch, every backported fix with its advisory,
 CVSS and publication date, and the php-src advisories not covered yet.
 
@@ -123,6 +129,7 @@ CVSS and publication date, and the php-src advisories not covered yet.
 | deb.sury.org publishes a new revision | `tools/import-sury-patches.sh <v>`, review the diff, `./versions.sh && ./apply-templates.sh`, `tools/security-report.py` |
 | php-src publishes an advisory | `tools/advisory-coverage.py`, then backport (`tools/import-php-src-commit.sh`) or triage |
 | a local build fix | add it to `patches/<v>/local.series`, `tools/bump-patchlevel.sh <v> "<reason>"` |
+| docker-library/php changes | `tools/upstream-review.sh --diff`, port or record it in `upstream.reviewed` |
 
 ## Credits and licenses
 

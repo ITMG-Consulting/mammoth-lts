@@ -19,7 +19,8 @@ in French; README/SECURITY are English (public project).
   - `triage` (php-src advisories not covered: `GHSA-… not-affected|wontfix|pending: reason`)
   - `known-test-failures` (expected `make test` failures, see tools/run-php-tests.sh)
 - `tools/` — import-sury-patches.sh, import-php-src-commit.sh, bump-patchlevel.sh, advisory-coverage.py,
-  security-report.py, run-php-tests.sh, tags.sh
+  security-report.py, run-php-tests.sh, tags.sh, upstream-review.sh, chroot-test/
+- `upstream.reviewed` — triage of docker-library/php commits after the fork point (`# base 68549643`)
 - `data/` — caches: advisories.json (CVSS/dates), php-src-advisories.json, coverage.json
 
 ## Decisions (do not revisit without the maintainer)
@@ -35,6 +36,9 @@ in French; README/SECURITY are English (public project).
   are EOL) + **currently supported** ones (alpine3.23/3.22, trixie/bookworm). Historic suites come first in
   `versions.sh`, so `7.2-fpm` / `7.2-fpm-alpine` keep the Hub meaning (buster / alpine3.12).
 - Tags: official naming + `-pN` (`tools/tags.sh`). No dated tags.
+- Commits: author `Mathieu GILLOOTS <mathieu@itmg-consulting.com>` (no git identity configured here: pass it with
+  `git -c user.name=… -c user.email=…`), plus the Co-Authored-By trailer. Pushing needs the maintainer's credentials
+  (remote origin is SSH: git@github.com:ITMG-Consulting/mammoth-lts.git).
 - Variants: cli, fpm, zts, apache (Debian only), as upstream had for these branches.
 - Public repo https://github.com/ITMG-Consulting/mammoth-lts: CI/CD = GitHub Actions, registry = GHCR
   `ghcr.io/itmg-consulting/mammoth-lts` (GITHUB_TOKEN, image name lowercased). Free for public repos, arm64 runners
@@ -62,6 +66,8 @@ tools/advisory-coverage.py              # php-src advisories not covered → bac
 tools/import-php-src-commit.sh <v> <sha> <name> [GHSA]   # backport an official fix (signed commits only)
 ./versions.sh && ./apply-templates.sh   # regenerate
 python3 tools/security-report.py        # SECURITY.md (badges CVSS, dates, open advisories)
+tools/upstream-review.sh --diff         # official image (docker-library/php) commits since fork point 68549643 →
+                                        # port to the template or record in upstream.reviewed; --sync-scripts for docker-php-*
 ```
 
 Adding a branch: write `patches/<v>/sury.conf` (look at `debian/patches/series` of the Sury source package: Debian

@@ -121,6 +121,16 @@ jobs:
       - run: python3 tools/advisory-coverage.py
         continue-on-error: true
 
+  upstream:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      # informative: a new docker-library/php commit must be triaged in upstream.reviewed (ported / not-applicable)
+      - run: tools/upstream-review.sh --diff
+        continue-on-error: true
+
   publish:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && needs.generate.outputs.dirs != '[]' && !failure() && !cancelled()
     needs: [generate, build, php-tests]
