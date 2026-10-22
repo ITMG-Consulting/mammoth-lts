@@ -17,7 +17,7 @@ fdcffeae not-applicable: removes an 8.1-only conditional
 9dac3d04 not-applicable: only the --enable-pic branch (8.6+); our branches use --with-pic
 6c91a369 not-applicable: removes 8.1 special cases upstream
 bc5b3fdc not-applicable: refactor of upstream versions.sh (ours is rewritten for EOL branches)
-51f293de pending: Alpine 3.24 added (and 3.22 dropped) upstream; our "current" suites are alpine3.23/3.22, test PHP 7.x on 3.24 (ICU 78) before adding it
+51f293de ported: Alpine 3.24 added and 3.22 dropped from our current suites (PHP 7.2 validated on 3.24 / ICU 78); 3.22 stays for 8.1 as a historic suite
 b4e4077c not-applicable: pre-release (RC) build URL, we only build releases
 b0dbbcc5 not-applicable: cachebuster on php.net API calls, already in our versions.sh
 319d5ab7 not-applicable: arm32v6 skip for 8.6 alpha (generate-stackbrew-library.sh, not used here)

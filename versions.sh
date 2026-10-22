@@ -26,7 +26,7 @@ declare -A historicSuites=(
 	[8.0]='bullseye buster alpine3.16'
 	[8.1]='trixie bookworm alpine3.22 alpine3.21'
 )
-currentSuites='trixie bookworm alpine3.23 alpine3.22'
+currentSuites='trixie bookworm alpine3.24 alpine3.23'
 
 for version in "${versions[@]}"; do
 	export version

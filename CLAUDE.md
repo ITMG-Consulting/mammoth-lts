@@ -33,8 +33,11 @@ in French; README/SECURITY are English (public project).
   version_compare() and parses in Composer (`-eolN` sorts below and breaks Composer). N bumps when the applied PHP
   code changes (import with a diff, local patch); never for base-image-only rebuilds.
 - Base images per branch: the **last series docker-library published** (same tags as Docker Hub, drop-in; these OS
-  are EOL) + **currently supported** ones (alpine3.23/3.22, trixie/bookworm). Historic suites come first in
+  are EOL) + **currently supported** ones (alpine3.24/3.23, trixie/bookworm). Historic suites come first in
   `versions.sh`, so `7.2-fpm` / `7.2-fpm-alpine` keep the Hub meaning (buster / alpine3.12).
+  Older series the Hub had over the years (e.g. alpine3.6–3.10 for 7.2) are intentionally not built (decided
+  2026-10-22): users of those tags move to the last historic suite or to a current one. Current Alpine follows the
+  official image (3.24 + 3.23 since 2026-10-22).
 - Tags: official naming + `-pN` (`tools/tags.sh`). No dated tags.
 - Commits: author `Mathieu GILLOOTS <mathieu@itmg-consulting.com>` (no git identity configured here: pass it with
   `git -c user.name=… -c user.email=…`), plus the Co-Authored-By trailer. Pushing needs the maintainer's credentials
@@ -85,14 +88,25 @@ musl/glibc chmod via /proc/self/fd → tar-noproc-wrapper; php-fpm -t error_log 
 CI (GitHub Actions) is the real check: build, smoke (`php -v` = version + `-pN`, php-fpm -t,
 docker-php-ext-install intl gd bcmath), `make test` vs known failures, advisory coverage.
 
-## State (2026-10-22)
+## State (2026-10-22, end of day)
 
-- 7.2: imported (Sury 7.2.34-66), `-p1`; alpine3.23/fpm built and tested; `make test` clean vs known failures.
-  38 php-src advisories untriaged (Sury does not cover everything: e.g. 8.2.34 batch of 2026-09-24).
-- 7.2 on all 8 suites (alpine3.11/3.12/3.22/3.23, stretch/buster/bookworm/trixie) built + smoke-tested in chroot
-  (php -v 7.2.34-p1, NTS/ZTS, php-fpm -t, apache2ctl -t, docker-php-ext-install intl gd bcmath with freetype).
-  Stretch needs dirmngr + libargon2 from buster (pinned), as upstream did.
-- Todo: 7.0, 7.1, 7.3, 7.4, 8.0, 8.1; the 20 untested 7.2 suite/variant combos; triage 7.2 advisories; arm64;
-  cosign; trademark check of the name before publishing; first commit/push
-  (nothing committed yet — ask before committing/pushing).
-- Context: started for civ-corse (/app/civ-corse/civ-corse, PHP 7.2 FPM on Alpine, CVE-2026-109618/109619).
+- Repo public, pushed: https://github.com/ITMG-Consulting/mammoth-lts (main = 57b27d0a). CI run 39704404884 left
+  running overnight (first full 7.2 build + make test + publish to GHCR). Local commit 24583e1a (Alpine 3.24/3.23)
+  **not pushed yet**: push once that run is over (a push cancels the running one).
+- 7.2: Sury 7.2.34-66 + GH-14834, `-p1`. All 8 suites built + smoke-tested in chroot (alpine3.11/3.12/3.23/3.24,
+  stretch/buster/bookworm/trixie), make test clean on alpine3.23 and on GitHub CI. Debian stretch/buster smoke test
+  fixed in CI (libfreetype6-dev).
+- docker-library/php: all 21 commits since the fork point triaged in upstream.reviewed.
+
+## Tomorrow (agreed with the maintainer)
+
+1. Check run 39704404884 (fix failures), push 24583e1a, remind the maintainer to make the GHCR package public
+   (Packages → mammoth-lts → Package settings → Change visibility).
+2. Credits (Sury / docker-library) in README, trademark check of "Mammoth LTS" (maintainer).
+3. Triage the 38 php-src advisories not covered for 7.2 (`tools/advisory-coverage.py`): backport with
+   tools/import-php-src-commit.sh or record in patches/7.2/triage. Security priority.
+4. civ-corse (/app/civ-corse/civ-corse) moves to ghcr.io/itmg-consulting/mammoth-lts:7.2-fpm-alpine3.12 or
+   …-alpine3.24: test its extensions (mcrypt 1.0.1, apcu), wkhtmltopdf (surnet build for 3.24 / old one for 3.12),
+   pdftk, the app.
+5. Next branches: 7.4 → 8.0 → 8.1 → 7.3 → 7.1 → 7.0; then arm64, cosign/SBOM.
+- Context: started for civ-corse (PHP 7.2 FPM on Alpine, CVE-2026-109618/109619).

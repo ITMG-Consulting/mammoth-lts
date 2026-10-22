@@ -1,7 +1,7 @@
 # Mammoth LTS
 
 Security-patched Docker images for end-of-life PHP: **PHP branches 7.0 → 8.1 with security fixes backported**, built like the
-[official `php` image](https://hub.docker.com/_/php) on supported base images (Alpine 3.22 / 3.23, Debian bookworm / trixie).
+[official `php` image](https://hub.docker.com/_/php) on supported base images (Alpine 3.23 / 3.24, Debian bookworm / trixie).
 
 > [!WARNING]
 > These branches are end-of-life upstream. Backports reduce the risk, they do not make an EOL branch supported:
@@ -16,7 +16,7 @@ Security-patched Docker images for end-of-life PHP: **PHP branches 7.0 → 8.1 w
 
 | Branch | Status | Base images (historic → current) | Patch series |
 | --- | --- | --- | --- |
-| 7.2 | built, tested | buster, stretch, alpine3.12, alpine3.11 → trixie, bookworm, alpine3.23, alpine3.22 | [patches/7.2](patches/7.2) |
+| 7.2 | built, tested | buster, stretch, alpine3.12, alpine3.11 → trixie, bookworm, alpine3.24, alpine3.23 | [patches/7.2](patches/7.2) |
 | 7.0, 7.1, 7.3, 7.4, 8.0, 8.1 | planned | | |
 
 Each branch is built on the base images docker-library last published it on (same tags as Docker Hub, so
