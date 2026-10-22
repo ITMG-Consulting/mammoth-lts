@@ -58,7 +58,8 @@ in French; README/SECURITY are English (public project).
   from it), then `./buildconf --force` (needs autoconf + make).
 - Patched tree is re-packed into `/usr/src/php.tar.xz` so `docker-php-ext-install` builds patched extensions.
 - libxml2 ≥ 2.13 breaks ext/xml entity handling (PEAR install fails): php-src 67259e45 (GH-14834) as 9001 for 7.2.
-- Debian jessie/stretch/buster: sources rewritten to archive.debian.org (`archived_debian`), no `-updates`.
+- Debian jessie/stretch/buster/bullseye: sources rewritten to archive.debian.org (`archived_debian`), no `-updates`
+  (bullseye LTS ended 2026-08: deb.debian.org pool files already 404).
 - Alpine < 3.14 has no `www-data` group in baselayout.
 - gcc >= 14 (alpine3.21+, trixie+, `gcc14` in the template): PHP 7 configure checks fail silently on implicit
   declarations (lost getaddrinfo = no IPv6 name resolution, pread/pwrite, ZEND_MM_ALIGNMENT, POSIX readdir_r...):
@@ -92,10 +93,10 @@ musl/glibc chmod via /proc/self/fd → tar-noproc-wrapper; php-fpm -t error_log 
 CI (GitHub Actions) is the real check: build, smoke (`php -v` = version + `-pN`, php-fpm -t,
 docker-php-ext-install intl gd bcmath), `make test` vs known failures, advisory coverage.
 
-## State (2026-10-22, afternoon)
+## State (2026-10-22, end of afternoon)
 
 - Repo public, GHCR package public (anonymous pull OK). Pushed: Alpine 3.24/3.23 (0031840d).
-- 7.2 = `-p2` (local, not pushed yet): Sury 7.2.34-66 + GH-14834 + 21 php-src security backports (9002-9022, adapted
+- 7.2 = `-p2`, pushed and published (CI run 39759000995 green, 60 jobs): Sury 7.2.34-66 + GH-14834 + 21 php-src security backports (9002-9022, adapted
   to 7.2, each with ported .phpt tests) + `-fpermissive` on gcc 14 suites. All 66 php-src advisories since 7.2.34
   are triaged (`patches/7.2/triage`: 14 not-affected, 1 wontfix = Marvin, 1 covered by Sury 0154 without id).
   tools/run-php-tests.sh 7.2 in an alpine3.23 chroot: no new failure. Also tested before pushing (each new test
@@ -107,16 +108,28 @@ docker-php-ext-install intl gd bcmath), `make test` vs known failures, advisory 
   Every other backport was also run against the old C code (new tests fail before, pass after), except ch8v
   (uninitialised stack byte, not deterministic); wg4p's upstream test passes on old code too (the OOB read goes to
   $index): reproduced separately (heap bytes leaked in $index keys, segfault with a 1 GiB offset).
-- Noted, not handled: 7.2 pdo_firebird `firebird_alloc_prepare_stmt` copies `:name` into `pname[64]` unbounded:
+- Noted, not handled: 7.2 and 7.4 pdo_firebird `firebird_alloc_prepare_stmt` copies `:name` into `pname[64]` unbounded:
   reachable from SQL text (even a `:name` in a comment), stack protector abort from 72 chars (DoS). No php-src advisory.
 - docker-library/php: all 21 commits since the fork point triaged in upstream.reviewed.
 
+- 7.4 = `-p1` (local, not pushed yet): Sury 7.4.33-31 (114 patches, KEEP_FROM=0048, 0052/0053 README and 0128
+  telemetry excluded) + 9001 w476 pdo_firebird (tested on Debian with Firebird 3/4) + 9002 GH-14834 (PEAR install
+  with libxml2 >= 2.13). All 66 advisories triaged (58 Sury, 1 ours, 6 not-affected, Marvin wontfix); Sury's
+  "partial" r6x9 is complete on the C side (0151 un-XFAILs the 14 tests). run-php-tests 7.4: 50 known failures
+  (OpenSSL 3.5 / libxml2 2.13 / no tty / musl). Chroot builds OK: alpine3.16, alpine3.24, bullseye (fpm); aria-mare's
+  extensions (gd jpeg/freetype, intl, zip, opcache, pdo_mysql, mcrypt 1.0.4, apcu) build on alpine3.16 and 3.24.
+- Found on the way: bullseye is EOL (archive.debian.org, added to `archived_debian`); `pecl install mcrypt-1.0.4`
+  fails on every image incl. the official one ("does not have REST info xml"), use
+  `pecl install https://pecl.php.net/get/mcrypt-1.0.4.tgz`; tools/import-sury-patches.sh failed on a first import
+  (pipefail on missing series/local.series and on diff), fixed.
+
 ## Next (agreed with the maintainer)
 
-1. Push -p2, check the CI run (full rebuild: template changed), then civ-corse.
+1. Push 7.4, check the CI run; then migrate aria-mare (/app/aria-mare-website, php:7.4-fpm-alpine = alpine3.16; its
+   Dockerfile copies php.ini / pool config to /etc/php7/, which the official image ignores) and civ-corse.
 2. Credits (Sury / docker-library) in README, trademark check of "Mammoth LTS" (maintainer).
 3. civ-corse (/app/civ-corse/civ-corse) moves to ghcr.io/itmg-consulting/mammoth-lts:7.2-fpm-alpine3.12 or
    …-alpine3.24: test its extensions (mcrypt 1.0.1, apcu), wkhtmltopdf (surnet build for 3.24 / old one for 3.12),
    pdftk, the app.
-4. Next branches: 7.4 → 8.0 → 8.1 → 7.3 → 7.1 → 7.0 (same advisory triage per branch); then arm64, cosign/SBOM.
+4. Next branches: 8.0 → 8.1 → 7.3 → 7.1 → 7.0 (same advisory triage per branch); then arm64, cosign/SBOM.
 - Context: started for civ-corse (PHP 7.2 FPM on Alpine, CVE-2026-109618/109619).

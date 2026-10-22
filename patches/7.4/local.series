@@ -1,0 +1,4 @@
+# php-src security fixes published after 7.4's EOL that deb.sury.org has not backported (tools/advisory-coverage.py), adapted to 7.4
+9001-GHSA-w476-322c-wpvm-pdo-firebird-nul-sql-injection.patch
+# https://github.com/php/php-src/issues/14834 (php-src 67259e45), needed with libxml2 >= 2.13
+9002-Fix-GH-14834-libxml2-2.13-entities-in-attributes.patch

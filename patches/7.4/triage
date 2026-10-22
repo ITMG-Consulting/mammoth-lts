@@ -1,0 +1,10 @@
+# php-src advisories published after 7.4.33 that no applied patch names (tools/advisory-coverage.py)
+# <GHSA-id> covered|not-affected|wontfix|pending: reason
+GHSA-fjp9-9hwx-59fq not-affected: bug in the mb_encode_mimeheader() rewrite of PHP 8.3 (only 8.3.6 patched), 7.4 has the old libmbfl encoder
+GHSA-hh26-4ppw-5864 wontfix: no php-src fix (any version), timing side channel of RSA PKCS#1 v1.5 decryption (openssl_private_decrypt() default padding, openssl_open()); mitigated by the implicit rejection of OpenSSL >= 3.2: trixie, alpine3.23/3.24 mitigated, bookworm (3.0), bullseye, buster, alpine3.15/3.16 (1.1) exposed; use a mitigated image or OAEP padding
+GHSA-74r9-qxhc-fx53 not-affected: mbfl_name2encoding_ex() (length-bounded lookup) does not exist in 7.4, mbfl_name2encoding() compares NUL-terminated names
+GHSA-4jhr-8w89-j733 not-affected: the xmlns attribute unlinking in DOMNode::C14N() was added in PHP 8.4, 7.4 calls xmlC14NDocSaveTo() directly
+GHSA-7jrw-539f-x6vr covered: Sury 0138 (openssl_encrypt() AES-WRAP-PAD heap overflow, backported from 8.2.32)
+GHSA-mhmq-mmqj-2v39 not-affected: 7.4 has no SSL peer name reset after a failed TLS setup in the http wrapper (bails out on a NULL stream)
+GHSA-x692-q9x7-8c3f not-affected: bc_str2num() fractional_end bookkeeping of the PHP 8.4 bcmath rewrite (only 8.4/8.5 patched)
+GHSA-rwp7-7vc6-8477 not-affected: 7.4 re-evaluates method/function calls on the write path of ??= instead of memoizing them, so ZEND_SEPARATE never redefines a COPY_TMP temporary (checked with opcache opcode dumps); the 3 upstream tests pass on a 7.4 debug build with malloc perturbation

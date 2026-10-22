@@ -65,6 +65,12 @@
   "score": 6.5,
   "severity": "MEDIUM"
  },
+ "CVE-2022-31630": {
+  "published": "2022-11-14",
+  "cvssVersion": "3.1",
+  "score": 6.5,
+  "severity": "MEDIUM"
+ },
  "CVE-2022-31631": {
   "published": "2025-02-12",
   "cvssVersion": "3.1",
@@ -197,11 +203,23 @@
   "score": 3.4,
   "severity": "LOW"
  },
+ "CVE-2025-1219": {
+  "published": "2025-03-30",
+  "cvssVersion": "4.0",
+  "score": 6.3,
+  "severity": "MEDIUM"
+ },
  "CVE-2025-1220": {
   "published": "2025-07-13",
   "cvssVersion": "3.1",
   "score": 3.7,
   "severity": "LOW"
+ },
+ "CVE-2025-14177": {
+  "published": "2025-12-27",
+  "cvssVersion": "4.0",
+  "score": 6.3,
+  "severity": "MEDIUM"
  },
  "CVE-2025-14178": {
   "published": "2025-12-27",
@@ -213,6 +231,12 @@
   "published": "2026-05-10",
   "cvssVersion": "4.0",
   "score": 7.4,
+  "severity": "HIGH"
+ },
+ "CVE-2025-14180": {
+  "published": "2025-12-27",
+  "cvssVersion": "4.0",
+  "score": 8.2,
   "severity": "HIGH"
  },
  "CVE-2025-14181": {
@@ -269,6 +293,12 @@
   "score": 8.1,
   "severity": "HIGH"
  },
+ "CVE-2026-17545": {
+  "published": "2026-09-25",
+  "cvssVersion": "4.0",
+  "score": 6.9,
+  "severity": "MEDIUM"
+ },
  "CVE-2026-6103": {
   "published": "2026-09-25",
   "cvssVersion": "3.1",
@@ -286,6 +316,12 @@
   "cvssVersion": "4.0",
   "score": 7.3,
   "severity": "HIGH"
+ },
+ "CVE-2026-7258": {
+  "published": "2026-05-10",
+  "cvssVersion": "4.0",
+  "score": 6.3,
+  "severity": "MEDIUM"
  },
  "CVE-2026-7260": {
   "published": "2026-07-30",
@@ -353,6 +389,12 @@
   "score": 5.8,
   "severity": "MEDIUM"
  },
+ "GHSA-3237-qqm7-mfv7": {
+  "published": "2025-12-18",
+  "cvssVersion": "4.0",
+  "score": 6.3,
+  "severity": "MEDIUM"
+ },
  "GHSA-3cr5-j632-f35r": {
   "published": "2025-07-03",
   "cvssVersion": null,
@@ -407,6 +449,12 @@
   "score": 5.9,
   "severity": "MEDIUM"
  },
+ "GHSA-8xr5-qppj-gvwj": {
+  "published": "2025-12-18",
+  "cvssVersion": "4.0",
+  "score": 6.3,
+  "severity": "MEDIUM"
+ },
  "GHSA-ch8v-r6jh-4vvr": {
   "published": "2026-09-24",
   "cvssVersion": "3.1",
@@ -437,6 +485,12 @@
   "score": null,
   "severity": "LOW"
  },
+ "GHSA-h96m-rvf9-jgm2": {
+  "published": "2025-12-18",
+  "cvssVersion": "3.1",
+  "score": 6.5,
+  "severity": "MEDIUM"
+ },
  "GHSA-hgf5-96fm-v528": {
   "published": "2025-03-13",
   "cvssVersion": null,
@@ -460,6 +514,12 @@
   "cvssVersion": "3.1",
   "score": 9.4,
   "severity": "CRITICAL"
+ },
+ "GHSA-p3x9-6h7p-cgfc": {
+  "published": "2025-03-13",
+  "cvssVersion": null,
+  "score": null,
+  "severity": "MEDIUM"
  },
  "GHSA-pc52-254m-w9w7": {
   "published": "2024-04-11",

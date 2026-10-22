@@ -84,7 +84,7 @@ for p in "${kept[@]}"; do
 	fi
 done
 
-fingerprint() { (cd "$dir" && grep -vE '^\s*(#|$)' series | xargs -r sha256sum) 2> /dev/null | sha256sum; }
+fingerprint() { (cd "$dir" && grep -vsE '^\s*(#|$)' series | xargs -r sha256sum || true) 2> /dev/null | sha256sum; }
 old="$(mktemp)"
 [ -f "$dir/series" ] && cp "$dir/series" "$old"
 before="$(fingerprint)"
@@ -94,7 +94,7 @@ for p in "${kept[@]}"; do
 done
 {
 	printf '%s\n' "${kept[@]}"
-	[ -f "$dir/local.series" ] && grep -vE '^\s*(#|$)' "$dir/local.series"
+	[ ! -f "$dir/local.series" ] || grep -vE '^\s*(#|$)' "$dir/local.series"
 } > "$dir/series"
 cp "$work/deb/debian/changelog" "$dir/debian.changelog"
 
@@ -103,7 +103,7 @@ if [ ! -f "$dir/patchlevel" ] || [ "$before" != "$(fingerprint)" ]; then
 	initial="$([ -f "$dir/patchlevel" ] || echo 1)"
 	patchlevel=$(( $(cat "$dir/patchlevel" 2> /dev/null || echo 0) + 1 ))
 	echo "$patchlevel" > "$dir/patchlevel"
-	added="$(diff "$old" "$dir/series" | sed -n 's/^> //p')"
+	added="$( (diff "$old" "$dir/series" || true) | sed -n 's/^> //p')"
 	{
 		upstream="${debVersion#*:}"
 		echo "## ${upstream%%-*}-p$patchlevel ($(date --utc +%F))"

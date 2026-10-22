@@ -17,12 +17,14 @@ Security-patched Docker images for end-of-life PHP: **PHP branches 7.0 → 8.1 w
 | Branch | Status | Base images (historic → current) | Patch series |
 | --- | --- | --- | --- |
 | 7.2 | built, tested | buster, stretch, alpine3.12, alpine3.11 → trixie, bookworm, alpine3.24, alpine3.23 | [patches/7.2](patches/7.2) |
-| 7.0, 7.1, 7.3, 7.4, 8.0, 8.1 | planned | | |
+| 7.4 | built, tested | bullseye, buster, alpine3.16, alpine3.15 → trixie, bookworm, alpine3.24, alpine3.23 | [patches/7.4](patches/7.4) |
+| 7.0, 7.1, 7.3, 8.0, 8.1 | planned | | |
 
 Each branch is built on the base images docker-library last published it on (same tags as Docker Hub, so
 `FROM php:7.2-fpm-alpine3.12` → `FROM ghcr.io/itmg-consulting/mammoth-lts:7.2-fpm-alpine3.12` is a drop-in change; **those OS releases are
 EOL themselves**, Debian ones install from archive.debian.org) and on the currently supported ones, which we recommend.
-Suite-less and `-alpine` aliases keep their Docker Hub meaning (`7.2-fpm` = buster, `7.2-fpm-alpine` = alpine3.12).
+Suite-less and `-alpine` aliases keep their Docker Hub meaning (`7.2-fpm` = buster, `7.2-fpm-alpine` = alpine3.12,
+`7.4-fpm` = bullseye, `7.4-fpm-alpine` = alpine3.16).
 
 A branch is generated once `patches/<version>/series` exists (`versions.sh`). Supported branches (8.2+) are not
 built here: use the official image.
@@ -69,13 +71,35 @@ and source, and gives the reason for every advisory not fixed.
   | --- | --- | --- |
   | trixie, alpine3.24, alpine3.23 | 3.5 | mitigated |
   | bookworm | 3.0 (no backport) | exposed |
-  | buster, stretch, alpine3.12, alpine3.11 | 1.1 | exposed |
+  | bullseye, buster, stretch, alpine3.16, alpine3.15, alpine3.12, alpine3.11 | 1.1 | exposed |
 
-  The default tags `7.2-fpm` (buster) and `7.2-fpm-alpine` (alpine3.12) are exposed. Only applications that decrypt
+  The default tags (`7.2-fpm`, `7.2-fpm-alpine`, `7.4-fpm`, `7.4-fpm-alpine`) are exposed. Only applications that decrypt
   with an RSA private key are concerned: `openssl_private_decrypt()` (its default padding is PKCS#1 v1.5) and
   `openssl_open()`. The attacker must also be able to submit many ciphertexts and time the responses. TLS is not
   affected (PHP does not decrypt RSA as a TLS client; the web server handles TLS). If your application decrypts RSA,
   use a trixie or alpine3.23 / 3.24 image, or switch to OAEP padding (`OPENSSL_PKCS1_OAEP_PADDING`).
+
+### PHP 7.4 (`7.4.33-p1`)
+
+| | Advisories |
+| --- | --- |
+| Published by php-src since 7.4.33 (November 2022) | **66** |
+| Fixed by the deb.sury.org series | 58 |
+| Fixed by our own backport of a php-src commit (`patches/7.4/9001`) | 1 |
+| Not affecting 7.4 | 6 |
+| Not fixed | 1 |
+| Not triaged yet | **0** |
+
+- **deb.sury.org** backported almost every advisory to 7.4, up to the PHP 8.2.35 fixes. Its mysqlnd fix
+  (GHSA-r6x9-5r99-36j7) is labelled "partial", but only because some upstream tests were adapted to 7.4: the C code
+  is the whole upstream fix (29 of its tests fail without it).
+- **Our backport**: pdo_firebird NUL quoting (GHSA-w476-322c-wpvm), built and tested with Firebird 3 and 4 on
+  Debian. Also php-src 67259e45 (GH-14834, not a security fix): without it, PEAR does not install with
+  libxml2 ≥ 2.13 (alpine3.23 / 3.24).
+- **Not affecting 7.4**: same reasons as 7.2 (code added in PHP 8.x), plus the `??=` use-after-free
+  (GHSA-rwp7-7vc6-8477): 7.4 re-evaluates the call on the write path instead of memoizing it, checked with opcode
+  dumps.
+- **Not fixed**: the Marvin attack, as for 7.2 (exposure per base image in the 7.2 section above).
 
 Outside this tracking:
 
@@ -83,7 +107,7 @@ Outside this tracking:
   OpenSSL, libxml2, curl, etc. no longer get fixes; only PHP itself is patched. Prefer the current suites, which pick
   up their distribution's updates on every weekly rebuild.
 - **PHP bugs fixed upstream without a security advisory**, and PECL extensions you install yourself.
-- **Known 7.2 issue with no advisory**: `pdo_firebird` copies a `:name` parameter longer than 71 characters from the
+- **Known 7.2 / 7.4 issue with no advisory**: `pdo_firebird` copies a `:name` parameter longer than 71 characters from the
   SQL text into a fixed stack buffer. The SQL text alone can crash the process this way. Not fixed yet.
 
 ## Images

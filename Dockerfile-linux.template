@@ -24,7 +24,7 @@
 	;
 	def archived_debian:
 		# suites only served by archive.debian.org (security included, as "<suite>/updates")
-		IN(env.suite; "jessie", "stretch", "buster")
+		IN(env.suite; "jessie", "stretch", "buster", "bullseye")
 	;
 	def gcc14:
 		# gcc >= 14: alpine 3.21+, debian trixie+
