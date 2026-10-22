@@ -26,7 +26,7 @@ step build '. /build.sh' || { echo "RESULT FAIL build"; exit 1; }
 
 version="${dir%%/*}"
 expected="$(jq -r --arg v "$version" '.[$v].version + .[$v].extraVersion' "$repo/versions.json")"
-env="$(grep -E '^export (PHP_INI_DIR|PHP_CFLAGS|PHP_CPPFLAGS|PHP_LDFLAGS|CXXFLAGS|PHPIZE_DEPS|PHP_VERSION)=' "$root/build.sh" | tr '\n' ';')"
+env="$(grep -E '^export (PHP_INI_DIR|PHP_CFLAGS|PHP_CPPFLAGS|PHP_LDFLAGS|CXXFLAGS|ICU_CXXFLAGS|PHPIZE_DEPS|PHP_VERSION)=' "$root/build.sh" | tr '\n' ';')"
 step version "$env php -v | grep -F 'PHP $expected '" || { echo "RESULT FAIL version"; exit 1; }
 step modules "$env php -m" || { echo "RESULT FAIL modules"; exit 1; }
 case "$dir" in

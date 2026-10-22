@@ -1,0 +1,52 @@
+Origin: mammoth-lts, fix of the backport of GHSA-h35g-vwh6-m678 (deb.sury.org php8.0 0074) to PHP < 8.1
+
+From efb2bc26901b15a0754c6fd2ed034fc8ade54911 Mon Sep 17 00:00:00 2001
+From: Mathieu GILLOOTS <mathieu@itmg-consulting.com>
+Date: Thu, 22 Oct 2026 12:04:29 +0000
+Subject: [PATCH] mysqlnd: do not free the fields of a malformed row twice
+
+The fixes for GHSA-h35g-vwh6-m678 and GHSA-r6x9-5r99-36j7 (written for PHP 8.1+) free the fields already decoded
+when a row packet turns out to be malformed. Before PHP 8.1, buffered results keep the decoded rows in set->data,
+and free_result() frees every field again: heap use-after-free / double free that a malicious MySQL server (or a
+man-in-the-middle on a plaintext connection) can trigger. Found by AddressSanitizer with the advisories' own tests.
+
+Leave the freed fields undecoded (IS_UNDEF), which free_result() skips. PHP 8.1+ is not affected (the decoded rows
+are no longer cached there).
+---
+ ext/mysqlnd/mysqlnd_wireprotocol.c | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/ext/mysqlnd/mysqlnd_wireprotocol.c b/ext/mysqlnd/mysqlnd_wireprotocol.c
+index 75dbe5e4..0070a232 100644
+--- a/ext/mysqlnd/mysqlnd_wireprotocol.c
++++ b/ext/mysqlnd/mysqlnd_wireprotocol.c
+@@ -1605,6 +1605,8 @@ php_mysqlnd_rowp_read_binary_protocol(MYSQLND_ROW_BUFFER * row_buffer, zval * fi
+ 			if (rbs <= row_position) {
+ 				for (j = 0, current_field = start_field; j < i; current_field++, j++) {
+ 					zval_ptr_dtor(current_field);
++					/* buffered results keep the decoded row: leave it undecoded, or free_result() frees these fields again */
++					ZVAL_UNDEF(current_field);
+ 				}
+ 				php_error_docref(NULL, E_WARNING, "Malformed server packet. No packet space left for the field");
+ 				DBG_RETURN(FAIL);
+@@ -1613,6 +1615,8 @@ php_mysqlnd_rowp_read_binary_protocol(MYSQLND_ROW_BUFFER * row_buffer, zval * fi
+ 			if (p == NULL) {
+ 				for (j = 0, current_field = start_field; j < i; current_field++, j++) {
+ 					zval_ptr_dtor(current_field);
++					/* buffered results keep the decoded row: leave it undecoded, or free_result() frees these fields again */
++					ZVAL_UNDEF(current_field);
+ 				}
+ 				DBG_RETURN(FAIL);
+ 			}
+@@ -1697,6 +1701,8 @@ php_mysqlnd_rowp_read_text_protocol_aux(MYSQLND_ROW_BUFFER * row_buffer, zval *
+ 			php_error_docref(NULL, E_WARNING, "Malformed server packet. Field length pointing after end of packet");
+ 			for (j = 0, current_field = start_field; j < i; current_field++, j++) {
+ 				zval_ptr_dtor(current_field);
++				/* buffered results keep the decoded row: leave it undecoded, or free_result() frees these fields again */
++				ZVAL_UNDEF(current_field);
+ 			}
+ 			DBG_RETURN(FAIL);
+ 		} else {
+-- 
+2.52.0
+

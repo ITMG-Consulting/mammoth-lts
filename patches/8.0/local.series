@@ -1,0 +1,4 @@
+# fix of the mysqlnd GHSA-h35g backport (double free of a malformed row's fields before PHP 8.1)
+9001-mysqlnd-do-not-free-malformed-row-fields-twice.patch
+# https://github.com/php/php-src/issues/14834 (php-src 67259e45), needed with libxml2 >= 2.13
+9002-Fix-GH-14834-libxml2-2.13-entities-in-attributes.patch

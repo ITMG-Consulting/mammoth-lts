@@ -323,6 +323,12 @@
   "score": 6.3,
   "severity": "MEDIUM"
  },
+ "CVE-2026-7259": {
+  "published": "2026-05-10",
+  "cvssVersion": "4.0",
+  "score": 2.1,
+  "severity": "LOW"
+ },
  "CVE-2026-7260": {
   "published": "2026-07-30",
   "cvssVersion": "4.0",

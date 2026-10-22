@@ -38,7 +38,7 @@ for version in "${versions[@]}"; do
 	fi
 
 	possi=( $(
-		curl -fsSL "https://www.php.net/releases/index.php?json&max=100&version=${version%%.*}&cachebuster=$now" \
+		curl -fsSL "https://www.php.net/releases/index.php?json&max=1000&version=${version%%.*}&cachebuster=$now" \
 			| jq --raw-output '
 				(keys[] | select(startswith(env.version + "."))) as $version
 				| [ $version, (

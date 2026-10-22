@@ -199,7 +199,7 @@ RUN { \
 # Enable linker optimization (this sorts the hash buckets to improve cache locality, and is non-default)
 # https://github.com/docker-library/php/issues/272
 # -D_LARGEFILE_SOURCE and -D_FILE_OFFSET_BITS=64 (https://www.php.net/manual/en/intro.filesystem.php)
-{{ if vid < ("8" | version_id) then ( -}}
+{{ if vid < ("8.1" | version_id) then ( -}}
 # PHP 7 predates gcc 14+ (C23 by default in gcc 15, incompatible-pointer-types as an error) and ICU 75+ (C++17 headers)
 # same flags as deb.sury.org for these versions
 {{ if gcc14 then ( -}}
@@ -210,6 +210,10 @@ ENV PHP_CFLAGS="-fstack-protector-strong -fpic -fpie -O2 -D_LARGEFILE_SOURCE -D_
 ENV PHP_CFLAGS="-fstack-protector-strong -fpic -fpie -O2 -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -std=gnu99 -Wno-error=incompatible-pointer-types -fno-strict-aliasing"
 {{ ) end -}}
 ENV CXXFLAGS="-fstack-protector-strong -fpic -fpie -O2 -std=c++17"
+{{ if vid >= ("8" | version_id) then ( -}}
+# PHP 8.0 as well (same flags in deb.sury.org php8.0); its ext/intl adds -std=c++11 after CXXFLAGS, ICU_CXXFLAGS comes last
+ENV ICU_CXXFLAGS="-std=c++17"
+{{ ) else "" end -}}
 {{ ) else ( -}}
 ENV PHP_CFLAGS="-fstack-protector-strong -fpic -fpie -O2 -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64"
 {{ ) end -}}
