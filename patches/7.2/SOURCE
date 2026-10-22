@@ -1,0 +1,7 @@
+package: php7.2
+version: 7.2.34-66+0~20261021.122+debian13~1.gbpe0bcd4
+suite: trixie
+debian-tarball: https://packages.sury.org/php/pool/main/p/php7.2/php7.2_7.2.34-66+0~20261021.122+debian13~1.gbpe0bcd4.debian.tar.xz
+debian-tarball-sha256: 4a5a49d808a4d0cd4d32709fbf471519e8c04d81fbc8f237baae073a87454ee9
+release-date: Wed, 21 Oct 2026 23:01:19 UTC
+license: debian/* Expat (Ondřej Surý), patches derived from php-src PHP-3.01

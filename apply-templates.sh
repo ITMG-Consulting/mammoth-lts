@@ -27,6 +27,9 @@ generated_warning() {
 	EOH
 }
 
+# shown as "Build Provider" in phpinfo()
+export buildProvider="${BUILD_PROVIDER:-mammoth-lts (unofficial build)}"
+
 for version; do
 	export version
 
@@ -75,6 +78,13 @@ for version; do
 			"$version/$dir/"
 		if [ "$variant" = 'apache' ]; then
 			cp -a apache2-foreground "$version/$dir/"
+		fi
+		if jq -e '.[env.version].patches' versions.json > /dev/null; then
+			mkdir "$version/$dir/patches"
+			cp -a "patches/$version/series" "$version/$dir/patches/"
+			grep -vE '^\s*(#|$)' "patches/$version/series" | while read -r p; do
+				cp -a "patches/$version/$p" "$version/$dir/patches/"
+			done
 		fi
 
 		cmd="$(jq <<<"$cmd" -r '.[0]')"

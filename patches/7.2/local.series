@@ -1,0 +1,2 @@
+# https://github.com/php/php-src/issues/14834 (php-src 67259e45), needed with libxml2 >= 2.13
+9001-Fix-GH-14834-libxml2-2.13-entities-in-attributes.patch

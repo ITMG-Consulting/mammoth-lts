@@ -3,86 +3,71 @@ set -Eeuo pipefail
 
 cd "$(dirname "$(readlink -f "$BASH_SOURCE")")"
 
-# TODO consume https://www.php.net/releases/branches.php and https://www.php.net/pre-release-builds.php?format=json here like in Go, Julia, etc (so we can have a canonical "here's all the versions possible" mode, and more automated metadata like EOL 👀)
-
+# EOL branches only: supported branches (8.2+) are covered by the official image (https://hub.docker.com/_/php)
+# a branch is published once patches/<version>/series exists (tools/import-sury-patches.sh, then reviewed)
 versions=( "$@" )
 if [ ${#versions[@]} -eq 0 ]; then
-	versions=( */ )
-	json='{}'
-else
-	json="$(< versions.json)"
+	versions=( 7.0 7.1 7.2 7.3 7.4 8.0 8.1 )
 fi
-versions=( "${versions[@]%/}" )
+
+json='{}'
+[ "$#" -eq 0 ] || json="$(< versions.json)"
 
 now="$(date --utc '+%s')"
 
+# base images: the last series docker-library/php published for the branch (same tags as Docker Hub, drop-in
+# replacement; these OS releases are EOL themselves) + the currently supported ones
+declare -A historicSuites=(
+	[7.0]='stretch jessie alpine3.7'
+	[7.1]='buster stretch alpine3.10 alpine3.9'
+	[7.2]='buster stretch alpine3.12 alpine3.11'
+	[7.3]='bullseye buster alpine3.15 alpine3.14'
+	[7.4]='bullseye buster alpine3.16 alpine3.15'
+	[8.0]='bullseye buster alpine3.16'
+	[8.1]='trixie bookworm alpine3.22 alpine3.21'
+)
+currentSuites='trixie bookworm alpine3.23 alpine3.22'
+
 for version in "${versions[@]}"; do
-	rcVersion="${version%-rc}"
-	export version rcVersion
+	export version
 
-	# scrape the relevant API based on whether we're looking for pre-releases
-	if [ "$rcVersion" = "$version" ]; then
-		apiUrl="https://www.php.net/releases/index.php?json&max=100&version=${rcVersion%%.*}"
-		apiJqExpr='
-			(keys[] | select(startswith(env.rcVersion))) as $version
-			| [ $version, (
-				.[$version].source[]
-				| select(.filename | endswith(".xz"))
-				|
-					"https://www.php.net/distributions/" + .filename,
-					"https://www.php.net/distributions/" + .filename + ".asc",
-					.sha256 // ""
-			) ]
-		'
-	else
-		apiUrl='https://www.php.net/pre-release-builds.php?format=json'
-		apiJqExpr='
-			(.releases // [])[]
-			| select(.version | startswith(env.rcVersion))
-			| [
-				.version,
-				.files.xz.path // "",
-				"",
-				.files.xz.sha256 // ""
-			]
-		'
-	fi
-	apiUrl+="&cachebuster=$now" # combat over-aggressive cache on php.net
-	IFS=$'\n'
-	possibles=( $(
-		curl -fsSL "$apiUrl" \
-			| jq --raw-output "$apiJqExpr | @sh" \
-			| sort -rV
-	) )
-	unset IFS
-
-	if [ "${#possibles[@]}" -eq 0 ]; then
-		echo >&2 "warning: skipping/removing '$version' (does not appear to exist upstream)"
+	if [ ! -f "patches/$version/series" ]; then
+		echo >&2 "warning: skipping '$version' (no patches/$version/series yet)"
 		json="$(jq <<<"$json" -c '.[env.version] = null')"
 		continue
 	fi
 
-	# format of "possibles" array entries is "VERSION URL.TAR.XZ URL.TAR.XZ.ASC SHA256" (each value shell quoted)
-	#   see the "apiJqExpr" values above for more details
-	eval "possi=( ${possibles[0]} )"
-	fullVersion="${possi[0]}"
-	url="${possi[1]}"
-	ascUrl="${possi[2]}"
-	sha256="${possi[3]}"
+	possi=( $(
+		curl -fsSL "https://www.php.net/releases/index.php?json&max=100&version=${version%%.*}&cachebuster=$now" \
+			| jq --raw-output '
+				(keys[] | select(startswith(env.version + "."))) as $version
+				| [ $version, (
+					.[$version].source[]
+					| select(.filename | endswith(".xz"))
+					|
+						"https://www.php.net/distributions/" + .filename,
+						"https://www.php.net/distributions/" + .filename + ".asc",
+						.sha256 // ""
+				) ]
+				| @sh
+			' \
+			| sort -rV \
+			| head -1 \
+			| xargs -n1
+	) )
+	[ "${#possi[@]}" -eq 4 ] || { echo >&2 "error: no release found for $version"; exit 1; }
+	fullVersion="${possi[0]}" url="${possi[1]}" ascUrl="${possi[2]}" sha256="${possi[3]}"
+	[ -n "$sha256" ] || { echo >&2 "error: no sha256 for $fullVersion"; exit 1; }
 
-	if ! curl --head -fsSL "$url" -o /dev/null; then
-		echo >&2 "error: '$url' appears to be missing"
-		exit 1
-	fi
+	# bumped by tools/import-sury-patches.sh whenever the applied patches change (or by hand for a local fix)
+	extraVersion="-p$(< "patches/$version/patchlevel")"
 
-	# if we don't have a .asc URL, let's just assume one :)
-	if [ -z "$ascUrl" ]; then
-		ascUrl="$url.asc"
-	fi
+	echo "$version: $fullVersion$extraVersion ($(awk -F': ' '$1 == "version" {print $2}' "patches/$version/SOURCE"))"
 
-	echo "$version: $fullVersion"
+	# historic suites first: like on Docker Hub they get the suite-less / "-alpine" tags (tools/tags.sh)
+	suites="$(printf '%s\n' ${historicSuites[$version]} $currentSuites | awk '!seen[$0]++' | paste -sd' ' -)"
 
-	export fullVersion url ascUrl sha256
+	export fullVersion url ascUrl sha256 extraVersion suites
 	json="$(
 		jq <<<"$json" -c '
 			.[env.version] = {
@@ -90,20 +75,16 @@ for version in "${versions[@]}"; do
 				url: env.url,
 				ascUrl: env.ascUrl,
 				sha256: env.sha256,
+				extraVersion: env.extraVersion,
+				patches: true,
 				variants: [
 					# order here controls the order of the library/ file
-					(
-						"trixie",
-						"bookworm",
-						"alpine3.24",
-						"alpine3.23",
-						empty
-					) as $suite
+					(env.suites | split(" ")[]) as $suite
 					| (
 						"cli",
 						"apache",
 						"fpm",
-						(if env.rcVersion | IN("8.2", "8.3", "8.4", "8.5") then "zts" else empty end),
+						"zts",
 						empty
 					) as $variant
 					| if $suite | startswith("alpine") and $variant == "apache" then empty else
@@ -113,16 +94,6 @@ for version in "${versions[@]}"; do
 			}
 		'
 	)"
-
-	# make sure RCs and releases have corresponding pairs
-	json="$(jq <<<"$json" -c '
-		.[
-			env.version
-			+ if env.version == env.rcVersion then
-				"-rc"
-			else "" end
-		] //= null
-	')"
 done
 
 jq <<<"$json" 'to_entries | sort_by(.key) | from_entries' > versions.json

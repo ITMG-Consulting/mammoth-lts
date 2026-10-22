@@ -1,11 +1,13 @@
-name: GitHub CI
+name: CI
 
 on:
   pull_request:
   push:
+    branches: [main]
   workflow_dispatch:
   schedule:
-    - cron: 0 0 * * 0
+    # weekly: rebuild on base image updates, and catch new php-src advisories
+    - cron: 0 3 * * 1
 
 defaults:
   run:
@@ -18,42 +20,123 @@ concurrency:
 permissions:
   contents: read
 
+env:
+  # registry/image, e.g. ghcr.io/<owner>/<repo> or a self-hosted registry (repository variable IMAGE)
+  IMAGE: ${{ vars.IMAGE || format('ghcr.io/{0}', github.repository) }}
+
 jobs:
 
-  generate-jobs:
-    name: Generate Jobs
+  generate:
     runs-on: ubuntu-latest
     outputs:
-      strategy: ${{ steps.generate-jobs.outputs.strategy }}
+      dirs: ${{ steps.dirs.outputs.dirs }}
+      versions: ${{ steps.dirs.outputs.versions }}
     steps:
       - uses: actions/checkout@v4
-      - uses: docker-library/bashbrew@HEAD
-      - id: generate-jobs
-        name: Generate Jobs
+        with:
+          fetch-depth: 0
+      - name: Generated files are up to date
         run: |
-          strategy="$("$BASHBREW_SCRIPTS/github-actions/generate.sh")"
+          ./apply-templates.sh
+          python3 tools/security-report.py
+          git diff --exit-code
+      # pull requests and pushes only build what changed; the weekly / manual runs rebuild everything (base image updates)
+      - id: dirs
+        env:
+          BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          all="$(jq -c '[to_entries[] | select(.value) | .key as $v | .value.variants[] | "\($v)/\(.)"]' versions.json)"
+          if [[ "${{ github.event_name }}" =~ ^(schedule|workflow_dispatch)$ ]] || ! git cat-file -e "${BASE:-0000}^{commit}" 2> /dev/null; then
+            dirs="$all"
+          else
+            changed="$(git diff --name-only "$BASE" HEAD)"
+            # generated dirs embed the template, the scripts and the patches: any change there shows up in <version>/<suite>/<variant>/
+            dirs="$(jq -c --arg changed "$changed" '[.[] | . as $d | select($changed | split("\n") | any(startswith($d + "/")))]' <<< "$all")"
+            # the test harness itself changed: re-run every branch
+            if grep -qE '^(tools/(run-php-tests|tags)\.sh|\.github/workflows/)' <<< "$changed"; then dirs="$all"; fi
+          fi
+          # known-test-failures is not part of the build context, only of the make test job
+          tests="$(git diff --name-only "${BASE:-HEAD}" HEAD 2> /dev/null | sed -n 's#^patches/\([^/]*\)/known-test-failures$#\1#p' | jq -Rc '[., inputs]' 2> /dev/null || echo '[]')"
+          echo "dirs=$dirs" >> "$GITHUB_OUTPUT"
+          echo "versions=$(jq -c --argjson tests "${tests:-[]}" '[(.[] | split("/")[0]), ($tests[] | select(. != ""))] | unique' <<< "$dirs")" >> "$GITHUB_OUTPUT"
 
-          EOF="EOF-$RANDOM-$RANDOM-$RANDOM"
-          echo "strategy<<$EOF" >> "$GITHUB_OUTPUT"
-          jq <<<"$strategy" . | tee -a "$GITHUB_OUTPUT"
-          echo "$EOF" >> "$GITHUB_OUTPUT"
-
-  test:
-    needs: generate-jobs
-    strategy: ${{ fromJson(needs.generate-jobs.outputs.strategy) }}
-    name: ${{ matrix.name }}
-    runs-on: ${{ matrix.os }}
+  build:
+    needs: generate
+    if: needs.generate.outputs.dirs != '[]'
+    strategy:
+      fail-fast: false
+      matrix:
+        dir: ${{ fromJson(needs.generate.outputs.dirs) }}
+    name: ${{ matrix.dir }}
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Prepare Environment
-        run: ${{ matrix.runs.prepare }}
-      - name: Pull Dependencies
-        run: ${{ matrix.runs.pull }}
-      - name: Build ${{ matrix.name }}
-        run: ${{ matrix.runs.build }}
-      - name: History ${{ matrix.name }}
-        run: ${{ matrix.runs.history }}
-      - name: Test ${{ matrix.name }}
-        run: ${{ matrix.runs.test }}
-      - name: '"docker images"'
-        run: ${{ matrix.runs.images }}
+      - name: Build
+        run: docker build --pull --tag "test:${{ github.run_id }}" "${{ matrix.dir }}"
+      - name: Smoke tests
+        run: |
+          version="${{ matrix.dir }}"; version="${version%%/*}"
+          expected="$(jq -r --arg v "$version" '.[$v].version + .[$v].extraVersion' versions.json)"
+          img="test:${{ github.run_id }}"
+          docker run --rm "$img" php -v | tee /dev/stderr | grep -F "PHP $expected "
+          docker run --rm "$img" php -r 'exit(PHP_VERSION === getenv("PHP_VERSION") ? 0 : 1);'
+          docker run --rm "$img" php -m
+          case "${{ matrix.dir }}" in
+            */fpm) docker run --rm "$img" php-fpm -t ;;
+            */apache) docker run --rm "$img" apache2ctl -t ;;
+          esac
+          # extensions users build on top of the image (pecl, docker-php-ext-*), exercise C++ (intl) and pkg-config detection (gd)
+          case "${{ matrix.dir }}" in
+            */alpine*) deps='apk add --no-cache icu-dev freetype-dev libjpeg-turbo-dev libpng-dev' ;;
+            *) deps='apt-get update && apt-get install -y --no-install-recommends libicu-dev libfreetype-dev libjpeg-dev libpng-dev' ;;
+          esac
+          docker run --rm "$img" sh -euxc "$deps && docker-php-ext-install -j\$(nproc) intl gd bcmath && php -m | grep -E '^(intl|gd|bcmath)$' | wc -l | grep -qx 3"
+
+  php-tests:
+    needs: generate
+    if: needs.generate.outputs.versions != '[]'
+    strategy:
+      fail-fast: false
+      matrix:
+        version: ${{ fromJson(needs.generate.outputs.versions) }}
+    name: make test ${{ matrix.version }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker run --rm -v "$PWD:/src:ro" alpine:3.23 /src/tools/run-php-tests.sh "${{ matrix.version }}"
+
+  advisories:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # informative: a new php-src advisory must be triaged (patches/<version>/triage) or backported
+      - run: python3 tools/advisory-coverage.py
+        continue-on-error: true
+
+  publish:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && needs.generate.outputs.dirs != '[]' && !failure() && !cancelled()
+    needs: [generate, build, php-tests]
+    strategy:
+      fail-fast: false
+      matrix:
+        dir: ${{ fromJson(needs.generate.outputs.dirs) }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ vars.REGISTRY || 'ghcr.io' }}
+          username: ${{ vars.REGISTRY_USER || github.actor }}
+          password: ${{ secrets.REGISTRY_PASSWORD || secrets.GITHUB_TOKEN }}
+      - name: Build and push
+        run: |
+          tags=()
+          for t in $(tools/tags.sh "${{ matrix.dir }}"); do tags+=( --tag "$IMAGE:$t" ); done
+          docker build --pull "${tags[@]}" \
+            --label org.opencontainers.image.source="${{ github.server_url }}/${{ github.repository }}" \
+            --label org.opencontainers.image.revision="${{ github.sha }}" \
+            "${{ matrix.dir }}"
+          for t in $(tools/tags.sh "${{ matrix.dir }}"); do docker push "$IMAGE:$t"; done

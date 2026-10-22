@@ -1,0 +1,10 @@
+#!/bin/sh
+# test harness only (chroot without /proc): old musl/glibc implement fchmodat(AT_SYMLINK_NOFOLLOW) through
+# /proc/self/fd, so GNU tar reports "Cannot change mode" on directories. Ignore exactly that, nothing else.
+for t in /bin/tar /usr/bin/tar; do [ -x "$t" ] && [ "$t" != "$0" ] && real="$t" && break; done
+err="$(mktemp)"
+"$real" "$@" 2> "$err"; rc=$?
+grep -vE 'Cannot change mode to .*: No such file or directory|Exiting with failure status due to previous errors' "$err" >&2
+if [ "$rc" -ne 0 ] && ! grep -vqE 'Cannot change mode to .*: No such file or directory|Exiting with failure status due to previous errors' "$err"; then rc=0; fi
+rm -f "$err"
+exit "$rc"

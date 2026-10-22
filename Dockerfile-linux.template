@@ -17,24 +17,34 @@
 		env.version | rtrimstr("-rc")
 	;
 	def clean_apt:
-		# TODO once bookworm is EOL, remove this and just hard-code "apt-get dist-clean" instead
-		if env.from | contains("bookworm") then
-			"rm -rf /var/lib/apt/lists/*"
-		else "apt-get dist-clean" end
+		# "apt-get dist-clean" appeared in apt 2.7 (trixie)
+		if env.from | contains("trixie") then
+			"apt-get dist-clean"
+		else "rm -rf /var/lib/apt/lists/*" end
 	;
-	def need_patch_18743:
-		# https://github.com/docker-library/php/pull/1580
-		# https://github.com/php/php-src/issues/18743 "Incompatibility in Inline TLS Assembly on Alpine 3.22 with zend_jit_ir.c"
-		env.variant == "zts"
-		and is_alpine
-		and IN(rcVersion; "8.2")
+	def archived_debian:
+		# suites only served by archive.debian.org (security included, as "<suite>/updates")
+		IN(env.suite; "jessie", "stretch", "buster")
 	;
-	def install_pear_pecl:
-		# https://github.com/docker-library/php/issues/1554
-		IN(rcVersion; "8.2", "8.3", "8.4", "8.5")
+	def vid:
+		.version | version_id
+	;
+	def has_patches:
+		# patches/<version>/series: backported security fixes (tools/import-sury-patches.sh) + local build fixes
+		.patches // false
 -}}
 FROM {{ env.from }}
 
+{{ if archived_debian then ( -}}
+# {{ env.suite }} is EOL: its packages (security updates included) only remain on archive.debian.org
+RUN set -eux; \
+	sed -ri \
+		-e 's!https?://(deb|security)\.debian\.org/!http://archive.debian.org/!' \
+		-e '/-updates/d' \
+		/etc/apt/sources.list; \
+	echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99archive
+
+{{ ) else "" end -}}
 {{ if is_alpine then "" else ( -}}
 # prevent Debian's PHP packages from being installed
 # https://github.com/docker-library/php/pull/542
@@ -74,6 +84,8 @@ RUN apk add --no-cache \
 
 # ensure www-data user exists
 RUN set -eux; \
+# the www-data group ships with alpine-baselayout since Alpine 3.14
+	grep -q '^www-data:' /etc/group || addgroup -g 82 -S www-data; \
 	adduser -u 82 -D -S -G www-data www-data
 # 82 is the standard uid/gid for "www-data" in Alpine
 # https://git.alpinelinux.org/aports/tree/main/apache2/apache2.pre-install?h=3.14-stable
@@ -168,7 +180,14 @@ RUN { \
 # Enable linker optimization (this sorts the hash buckets to improve cache locality, and is non-default)
 # https://github.com/docker-library/php/issues/272
 # -D_LARGEFILE_SOURCE and -D_FILE_OFFSET_BITS=64 (https://www.php.net/manual/en/intro.filesystem.php)
+{{ if vid < ("8" | version_id) then ( -}}
+# PHP 7 predates gcc 14+ (C23 by default in gcc 15, incompatible-pointer-types as an error) and ICU 75+ (C++17 headers)
+# same flags as deb.sury.org for these versions
+ENV PHP_CFLAGS="-fstack-protector-strong -fpic -fpie -O2 -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -std=gnu99 -Wno-error=incompatible-pointer-types -fno-strict-aliasing"
+ENV CXXFLAGS="-fstack-protector-strong -fpic -fpie -O2 -std=c++17"
+{{ ) else ( -}}
 ENV PHP_CFLAGS="-fstack-protector-strong -fpic -fpie -O2 -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64"
+{{ ) end -}}
 ENV PHP_CPPFLAGS="$PHP_CFLAGS"
 ENV PHP_LDFLAGS="-Wl,-O1 -pie"
 
@@ -176,14 +195,6 @@ ENV GPG_KEYS {{
 	{
 		# https://www.php.net/gpg-keys.php
 		# https://www.php.net/downloads.php
-
-		"8.6": [
-			# https://wiki.php.net/todo/php86#release_managers
-			# https://www.php.net/gpg-keys.php#gpg-8.6
-			"D95C 03BC 702B E951 5344  AE33 74E4 4BC9 0677 01A5", # daniels
-			"0168 95DE 9A47 5111 D537  A6E6 9134 FF30 BC5A 99B5", # mbeccati
-			"5CFF 17B6 4DC1 C244 F5D0  EAC3 E435 35E2 EB19 010E"  # svpernova09
-		],
 
 		"8.5": [
 			# https://wiki.php.net/todo/php85#release_managers
@@ -216,12 +227,63 @@ ENV GPG_KEYS {{
 			"E609 13E4 DF20 9907 D8E3  0D96 659A 97C9 CF2A 795A", # sergey
 			"1198 C011 7593 497A 5EC5  C199 286A F1F9 8974 69DC"  # pierrick
 		],
+
+		"8.1": [
+			# https://wiki.php.net/todo/php81#release_managers
+			# https://www.php.net/gpg-keys.php#gpg-8.1
+			"5289 95BF EDFB A719 1D46  839E F9BA 0ADA 31CB D89E", # krakjoe
+			"39B6 4134 3D8C 104B 2B14  6DC3 F9C3 9DC0 B969 8544", # ramsey
+			"F1F6 9223 8FBC 1666 E5A5  CCD4 199F 9DFE F6FF BAFD"  # patrickallaert
+		],
+
+		"8.0": [
+			# https://wiki.php.net/todo/php80#release_managers
+			# https://www.php.net/gpg-keys.php#gpg-8.0
+			"1729 F839 38DA 44E2 7BA0  F4D3 DBDB 3974 70D1 2172", # pollita
+			"BFDD D286 4282 4F81 18EF  7790 9B67 A5C1 2229 118F", # carusogabriel
+			"2C16 C765 DBE5 4A08 8130  F1BC 4B9B 5F60 0B55 F3B4", # carusogabriel
+			"39B6 4134 3D8C 104B 2B14  6DC3 F9C3 9DC0 B969 8544"  # ramsey
+		],
+
+		"7.4": [
+			# https://wiki.php.net/todo/php74#release_managers
+			# https://www.php.net/gpg-keys.php#gpg-7.4
+			"4267 0A7F E4D0 441C 8E46  3234 9E4F DC07 4A4E F02D", # petk
+			"5A52 8807 81F7 5560 8BF8  15FC 910D EB46 F53E A312"  # derick
+		],
+
+		"7.3": [
+			# https://wiki.php.net/todo/php73#release_managers
+			# https://www.php.net/gpg-keys.php#gpg-7.3
+			"CBAF 69F1 73A0 FEA4 B537  F470 D66C 9593 118B CCB6", # cmb
+			"F382 5282 6ACD 957E F380  D39F 2F79 56BC 5DA0 4B5D"  # stas
+		],
+
+		"7.2": [
+			# https://wiki.php.net/todo/php72#release_managers
+			# https://www.php.net/gpg-keys.php#gpg-7.2
+			"1729 F839 38DA 44E2 7BA0  F4D3 DBDB 3974 70D1 2172", # pollita
+			"B1B4 4D8F 021E 4E2D 6021  E995 DC9F F8D3 EE5A F27F"  # remi
+		],
+
+		"7.1": [
+			# https://www.php.net/gpg-keys.php#gpg-7.1 (docker-library/php 2bf33a85)
+			"A917 B1EC DA84 AEC2 B568  FED6 F50A BC80 7BD5 DCD0",
+			"5289 95BF EDFB A719 1D46  839E F9BA 0ADA 31CB D89E",
+			"1729 F839 38DA 44E2 7BA0  F4D3 DBDB 3974 70D1 2172"
+		],
+
+		"7.0": [
+			# https://www.php.net/gpg-keys.php#gpg-7.0 (docker-library/php 0e5c984e)
+			"1A4E 8B72 77C4 2E53 DBA9  C7B9 BCAA 30EA 9C0D 5763",
+			"6E4F 6AB3 21FD C07F 2C33  2E3A C2BF 0BC4 33CF C8B3"
+		],
 	}[rcVersion] // error("missing GPG keys for " + rcVersion)
 	| map(gsub(" "; ""))
 	| join(" ")
 }}
 
-ENV PHP_VERSION {{ .version }}
+ENV PHP_VERSION {{ .version }}{{ .extraVersion // "" }}
 ENV PHP_URL="{{ .url }}" PHP_ASC_URL="{{ .ascUrl // "" }}"
 ENV PHP_SHA256="{{ .sha256 // "" }}"
 
@@ -232,7 +294,7 @@ RUN set -eux; \
 {{ ) else ( -}}
 	savedAptMark="$(apt-mark showmanual)"; \
 	apt-get update; \
-	apt-get install -y --no-install-recommends gnupg; \
+	apt-get install -y --no-install-recommends gnupg{{ if IN(env.suite; "jessie", "stretch") then " dirmngr" else "" end }}; \
 	{{ clean_apt }}; \
 {{ ) end -}}
 	\
@@ -263,6 +325,9 @@ RUN set -eux; \
 {{ ) end -}}
 
 COPY docker-php-source /usr/local/bin/
+{{ if has_patches then ( -}}
+COPY patches/ /usr/src/php-patches/
+{{ ) else "" end -}}
 
 RUN set -eux; \
 {{ if is_alpine then ( -}}
@@ -270,6 +335,19 @@ RUN set -eux; \
 {{ ) else ( -}}
 	\
 	savedAptMark="$(apt-mark showmanual)"; \
+{{ if env.suite == "stretch" and vid >= ("7.2" | version_id) then ( -}}
+# libargon2 from buster (stretch's is too old for password_hash ARGON2), as docker-library/php did for stretch
+	sed -e 's/stretch/buster/g' /etc/apt/sources.list > /etc/apt/sources.list.d/buster.list; \
+	{ \
+		echo 'Package: *'; \
+		echo 'Pin: release n=buster*'; \
+		echo 'Pin-Priority: -10'; \
+		echo; \
+		echo 'Package: libargon2*'; \
+		echo 'Pin: release n=buster*'; \
+		echo 'Pin-Priority: 990'; \
+	} > /etc/apt/preferences.d/argon2-buster; \
+{{ ) else "" end -}}
 	apt-get update; \
 	apt-get install -y --no-install-recommends \
 {{ ) end -}}
@@ -278,34 +356,35 @@ RUN set -eux; \
 		[ if is_alpine then
 			# alpine packages
 			"$PHPIZE_DEPS",
-			"argon2-dev",
+			if vid >= ("7.2" | version_id) then "argon2-dev" else empty end,
 			"coreutils",
 			"curl-dev",
 			"gnu-libiconv-dev", # https://www.php.net/manual/en/intro.iconv.php "it'd be a good idea to install the GNU libiconv library"
-			"libsodium-dev",
+			if vid >= ("7.2" | version_id) then "libsodium-dev" else empty end,
 			"libxml2-dev",
 			"openssl-dev",
-			# https://github.com/docker-library/php/pull/1580 (18743)
-			if need_patch_18743 then "patch", "patchutils" else empty end,
-			"readline-dev",
+			if has_patches then "patch" else empty end,
+			# PHP < 7.3 was built against libedit upstream
+			if vid < ("7.3" | version_id) then "libedit-dev" else "readline-dev" end,
 			"sqlite-dev",
 			# https://github.com/docker-library/php/issues/888
-			"linux-headers",
+			if vid >= ("7.4" | version_id) then "linux-headers" else empty end,
 			# oniguruma is part of mbstring in php 7.4+
-			if install_pear_pecl then "oniguruma-dev" else empty end
+			if vid >= ("7.4" | version_id) then "oniguruma-dev" else empty end
 		else
 			# debian packages
 			if env.variant == "apache" then "apache2-dev" else empty end,
-			"libargon2-dev",
+			if vid >= ("7.2" | version_id) then "libargon2-dev" else empty end,
 			"libcurl4-openssl-dev",
-			"libreadline-dev",
-			"libsodium-dev",
+			if vid < ("7.3" | version_id) then "libedit-dev" else "libreadline-dev" end,
+			if vid >= ("7.2" | version_id) then "libsodium-dev" else empty end,
 			"libsqlite3-dev",
 			"libssl-dev",
 			"libxml2-dev",
 			"zlib1g-dev",
+			if has_patches then "patch" else empty end,
 			# oniguruma is part of mbstring in php 7.4+
-			if install_pear_pecl then "libonig-dev" else empty end
+			if vid >= ("7.4" | version_id) then "libonig-dev" else empty end
 		end ] | sort[] | (
 -}}
 		{{ . }} \
@@ -318,6 +397,9 @@ RUN set -eux; \
 {{ if is_alpine then ( -}}
 # make sure musl's iconv doesn't get used (https://www.php.net/manual/en/intro.iconv.php)
 	rm -vf /usr/include/iconv.h; \
+{{ if vid < ("8" | version_id) then ( -}}
+	ln -sv /usr/include/gnu-libiconv/*.h /usr/include/; \
+{{ ) else "" end -}}
 	\
 {{ ) else "" end -}}
 	export \
@@ -325,18 +407,25 @@ RUN set -eux; \
 		CPPFLAGS="$PHP_CPPFLAGS" \
 		LDFLAGS="$PHP_LDFLAGS" \
 # https://github.com/php/php-src/blob/d6299206dd828382753453befd1b915491b741c6/configure.ac#L1496-L1511
-		PHP_BUILD_PROVIDER='https://github.com/docker-library/php' \
+		PHP_BUILD_PROVIDER={{ env.buildProvider | @sh }} \
 		PHP_UNAME='Linux - Docker' \
 	; \
 	docker-php-source extract; \
 	cd /usr/src/php; \
-{{ if need_patch_18743 then ( -}}
-	# https://github.com/php/php-src/issues/18743 "Incompatibility in Inline TLS Assembly on Alpine 3.22 with zend_jit_ir.c"
-	# https://github.com/docker-library/php/pull/1580
-	curl -fL 'https://github.com/php/php-src/commit/b3c8afe272a6919248986c703c2e1defc73ff707.patch?full_index=1' -o 18743.patch; \
-	echo 'b334f73434c9732a4b27a42eb5d417e10df842e854c02a3e753b2479f8978bf5 *18743.patch' | sha256sum -c -; \
-	filterdiff -x '*/NEWS' 18743.patch | patch -p1; \
-	rm 18743.patch; \
+{{ if has_patches then ( -}}
+# backported security fixes and build fixes, see patches/{{ env.version }}/SOURCE
+	while read -r p; do \
+		case "$p" in ''|'#'*) continue ;; esac; \
+		patch -p1 --no-backup-if-mismatch < "/usr/src/php-patches/$p"; \
+	done < /usr/src/php-patches/series; \
+	rm -rf /usr/src/php-patches; \
+# PHP < 7.4 does not ship pkg.m4; buildconf and phpize both build aclocal.m4 from acinclude.m4
+	if ! grep -qs 'PKG_PROG_PKG_CONFIG' acinclude.m4 build/*.m4; then \
+		cat /usr/share/aclocal/pkg.m4 >> acinclude.m4; \
+	fi; \
+	./buildconf --force; \
+# docker-php-ext-* re-extract /usr/src/php.tar.xz: keep the patched tree there
+	tar -cJf /usr/src/php.tar.xz -C /usr/src --exclude=php/.docker-extracted php; \
 {{ ) else "" end -}}
 	gnuArch="$(dpkg-architecture --query DEB_BUILD_GNU_TYPE)"; \
 {{ if is_alpine then "" else ( -}}
@@ -346,21 +435,8 @@ RUN set -eux; \
 		ln -sT "/usr/include/$debMultiarch/curl" /usr/local/include/curl; \
 	fi; \
 {{ ) end -}}
-	case "$gnuArch" in \
-		'i686-linux-'*) \
-			# php zend jit assumes SSE registers, xmm0-7, are available (and "Pentium4"/SSE2 is a reasonable baseline)
-			# https://github.com/php/php-src/pull/22832
-			# so, allow it and use SSE/SSE2 floating-point unit instead of the legacy stack
-			export \
-				CFLAGS="$CFLAGS -msse2 -mfpmath=sse" \
-				CPPFLAGS="$CPPFLAGS -msse2 -mfpmath=sse" \
-			; \
-			;; \
-	esac; \
-	test "$PHP_INI_DIR" != "${PHP_INI_DIR%/php}"; \
 	./configure \
 		--build="$gnuArch" \
-		--sysconfdir="${PHP_INI_DIR%/php}" \
 		--with-config-file-path="$PHP_INI_DIR" \
 		--with-config-file-scan-dir="$PHP_INI_DIR/conf.d" \
 		\
@@ -370,36 +446,33 @@ RUN set -eux; \
 # https://github.com/docker-library/php/issues/439
 		--with-mhash \
 		\
-{{ if rcVersion | IN("8.2", "8.3", "8.4", "8.5") then ( -}}
 # https://github.com/docker-library/php/issues/822
 		--with-pic \
 		\
-{{ ) elif env.variant == "apache" then ( -}}
-# https://github.com/docker-library/php/issues/822
-# https://github.com/php/php-src/pull/21067/changes#diff-4b9db5b77bcd56aa33b310dc44c8bc99c729c9abb195df2e98e6985b81289ae8R130
-		--enable-pic \
-		\
-{{ ) else ( -}}
-# no --enable-pic; forcing PIC also removes -fpie from executable objects, preventing local-exec TLS: https://github.com/docker-library/php/pull/1692
-{{ ) end -}}
-{{ if install_pear_pecl then ( -}}
+{{ if vid < ("8.2" | version_id) then ( -}}
+# --enable-ftp is included here for compatibility with existing versions. ftp_ssl_connect() needed ftp to be compiled statically before PHP 7.0 (see https://github.com/docker-library/php/issues/236).
+		--enable-ftp \
+{{ ) else "" end -}}
 # --enable-mbstring is included here because otherwise there's no way to get pecl to use it properly (see https://github.com/docker-library/php/issues/195)
 		--enable-mbstring \
-{{ ) else "" end -}}
 # --enable-mysqlnd is included here because it's harder to compile after the fact than extensions are (since it's a plugin for several extensions, not an extension in itself)
 		--enable-mysqlnd \
+{{ if vid >= ("7.2" | version_id) then ( -}}
 # https://wiki.php.net/rfc/argon2_password_hash
 		--with-password-argon2 \
 # https://wiki.php.net/rfc/libsodium
 		--with-sodium=shared \
+{{ ) else "" end -}}
+{{ if vid >= ("7.1" | version_id) then ( -}}
 # always build against system sqlite3 (https://github.com/php/php-src/commit/6083a387a81dbbd66d6316a3a12a63f06d5f7109)
 		--with-pdo-sqlite=/usr \
 		--with-sqlite3=/usr \
+{{ ) else "" end -}}
 		\
 		--with-curl \
 		--with-iconv{{ if is_alpine then "=/usr" else "" end }} \
 		--with-openssl \
-		--with-readline \
+		{{ if vid < ("7.3" | version_id) then "--with-libedit" else "--with-readline" end }} \
 		--with-zlib \
 		\
 {{ if env.variant | IN("cli", "zts") then ( -}}
@@ -411,12 +484,12 @@ RUN set -eux; \
 		--disable-phpdbg \
 {{ ) end -}}
 		\
-{{ if install_pear_pecl then ( -}}
+{{ if vid >= ("7.4" | version_id) then ( -}}
 # in PHP 7.4+, the pecl/pear installers are officially deprecated (requiring an explicit "--with-pear")
 		--with-pear \
 		\
 {{ ) else "" end -}}
-{{ if rcVersion | IN("8.2") then ( -}}
+{{ if vid < ("8.3" | version_id) then ( -}}
 # bundled pcre does not support JIT on riscv64 until 10.41 (php 8.3+)
 # https://github.com/PCRE2Project/pcre2/commits/pcre2-10.41/src/sljit/sljitNativeRISCV_64.c
 # https://github.com/php/php-src/tree/php-8.3.0/ext/pcre/pcre2lib
@@ -435,7 +508,7 @@ RUN set -eux; \
 		--disable-cgi \
 {{ ) end -}}
 {{ # zts + alpine special cased for embed (otherwise zts is effectively cli): https://github.com/docker-library/php/pull/1342 -}}
-{{ if env.variant == "zts" or (env.variant == "cli" and ((rcVersion | version_id) >= 80600 or (is_alpine | not))) then ( -}}
+{{ if (env.variant == "zts") or (env.variant == "cli" and (is_alpine | not)) then ( -}}
 		\
 # https://github.com/docker-library/php/pull/939#issuecomment-730501748
 		--enable-embed \
@@ -448,13 +521,12 @@ RUN set -eux; \
 		--enable-fpm \
 		--with-fpm-user=www-data \
 		--with-fpm-group=www-data \
-{{ ) else "" end -}}
-{{ if env.variant == "zts" or (rcVersion | version_id) >= 80600 then ( -}}
+{{ ) elif env.variant == "zts" then ( -}}
 		\
-		--enable-zts \
+		{{ if vid >= ("8" | version_id) then "--enable-zts" else "--enable-maintainer-zts" end }} \
 # https://externals.io/message/118859
 		--disable-zend-signals \
-{{ if rcVersion | IN("8.2") then ( -}}
+{{ if rcVersion == "8.1" then ( -}}
 		--enable-zend-max-execution-timers \
 {{ ) else "" end -}}
 {{ ) else "" end -}}
@@ -464,6 +536,14 @@ RUN set -eux; \
 		--enable-debug \
 {{ ) else "" end -}}
 	; \
+{{ if .extraVersion then ( -}}
+# "php -v" / PHP_VERSION report the patch level of this build, e.g. 7.2.34-p3 (> 7.2.34 for version_compare() and composer)
+	sed -ri \
+		-e 's/^(#define PHP_EXTRA_VERSION ).*/\1"{{ .extraVersion }}"/' \
+		-e 's/^(#define PHP_VERSION "[0-9.]+).*/\1{{ .extraVersion }}"/' \
+		main/php_version.h; \
+	grep -q '^#define PHP_VERSION "{{ .version }}{{ .extraVersion }}"$' main/php_version.h; \
+{{ ) else "" end -}}
 	make -j "$(nproc)"; \
 	find -type f -name '*.a' -delete; \
 	make install; \
@@ -513,24 +593,30 @@ RUN set -eux; \
 	{{ clean_apt }}; \
 {{ ) end -}}
 	\
-{{ if install_pear_pecl then ( -}}
 # update pecl channel definitions https://github.com/docker-library/php/issues/443
 	pecl update-channels; \
 	rm -rf /tmp/pear ~/.pearrc; \
 	\
-{{ ) else "" end -}}
 # smoke test
 	php --version
 
 COPY docker-php-ext-* docker-php-entrypoint /usr/local/bin/
 
-{{ if IN(rcVersion; "8.2", "8.3", "8.4") then ( -}}
+{{ if rcVersion == "8.1" then ( -}}
 # enable OPcache by default (https://wiki.php.net/rfc/make_opcache_required)
 RUN docker-php-ext-enable opcache
 
 {{ ) else "" end -}}
+{{ if vid >= ("7.2" | version_id) then ( -}}
 # sodium was built as a shared module (so that it can be replaced later if so desired), so let's enable it too (https://github.com/docker-library/php/issues/598)
 RUN docker-php-ext-enable sodium
+
+{{ ) else "" end -}}
+{{ if (is_alpine | not) and vid < ("7.4" | version_id) then ( -}}
+# https://github.com/docker-library/php/pull/1010 (gd < 7.4 looks for freetype-config, gone from Debian)
+RUN { echo '#!/bin/sh'; echo 'exec pkg-config "$@" freetype2'; } > /usr/local/bin/freetype-config && chmod +x /usr/local/bin/freetype-config
+
+{{ ) else "" end -}}
 
 ENTRYPOINT ["docker-php-entrypoint"]
 {{ if env.variant == "apache" then ( -}}
@@ -545,20 +631,26 @@ EXPOSE 80
 WORKDIR /var/www/html
 
 RUN set -eux; \
-	cd "${PHP_INI_DIR%/php}"; \
-	\
-	cp -v php-fpm.conf.default php-fpm.conf; \
-	cp -v php-fpm.d/www.conf.default php-fpm.d/www.conf; \
-	\
-	# comment out localhost-only listen address
-	grep -E '^listen = 127.0.0.1:9000' php-fpm.d/www.conf; \
-	sed -ri 's/^(listen = 127.0.0.1:9000)/;\1/' php-fpm.d/www.conf; \
-	grep -E '^;listen = 127.0.0.1:9000' php-fpm.d/www.conf; \
-	\
+	cd /usr/local/etc; \
+	if [ -d php-fpm.d ]; then \
+		# for some reason, upstream's php-fpm.conf.default has "include=NONE/etc/php-fpm.d/*.conf"
+		sed 's!=NONE/!=!g' php-fpm.conf.default | tee php-fpm.conf > /dev/null; \
+		cp php-fpm.d/www.conf.default php-fpm.d/www.conf; \
+	else \
+		# PHP 5.x doesn't use "include=" by default, so we'll create our own simple config that mimics PHP 7+ for consistency
+		mkdir php-fpm.d; \
+		cp php-fpm.conf.default php-fpm.d/www.conf; \
+		{ \
+			echo '[global]'; \
+			echo 'include=etc/php-fpm.d/*.conf'; \
+		} | tee php-fpm.conf; \
+	fi; \
 	{ \
 		echo '[global]'; \
 		echo 'error_log = /proc/self/fd/2'; \
+{{ if vid >= ("7.3" | version_id) then ( -}}
 		echo; echo '; https://github.com/docker-library/php/pull/725#issuecomment-443540114'; echo 'log_limit = 8192'; \
+{{ ) else "" end -}}
 		echo; \
 		echo '[www]'; \
 		echo '; php-fpm closes STDOUT on startup, so sending logs to /proc/self/fd/1 does not work.'; \
@@ -569,19 +661,16 @@ RUN set -eux; \
 		echo; \
 		echo '; Ensure worker stdout and stderr are sent to the main error log.'; \
 		echo 'catch_workers_output = yes'; \
+{{ if vid >= ("7.3" | version_id) then ( -}}
 		echo 'decorate_workers_output = no'; \
-		echo; \
-		echo '; default listen address for easy override in later php-fpm.d/*.conf files'; \
-		echo 'listen = 9000'; \
+{{ ) else "" end -}}
 	} | tee php-fpm.d/docker.conf; \
 	{ \
 		echo '[global]'; \
 		echo 'daemonize = no'; \
-{{ if rcVersion | IN("8.2", "8.3", "8.4", "8.5") then ( -}}
 		echo; \
-		echo '; the [www] ini section below is for backwards compatibility and will be removed in 8.6+'; \
 		echo '[www]'; \
-{{ ) else "" end -}}
+		echo 'listen = 9000'; \
 	} | tee php-fpm.d/zz-docker.conf; \
 	mkdir -p "$PHP_INI_DIR/conf.d"; \
 	{ \
