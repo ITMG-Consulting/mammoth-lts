@@ -36,8 +36,9 @@ in French; README/SECURITY are English (public project).
   `versions.sh`, so `7.2-fpm` / `7.2-fpm-alpine` keep the Hub meaning (buster / alpine3.12).
 - Tags: official naming + `-pN` (`tools/tags.sh`). No dated tags.
 - Variants: cli, fpm, zts, apache (Debian only), as upstream had for these branches.
-- Registry configurable in CI (`vars.IMAGE`, `vars.REGISTRY`), maintainer may self-host. Public GitHub repo
-  (Actions free and unlimited for public repos, arm64 runners included).
+- Public repo https://github.com/ITMG-Consulting/mammoth-lts: CI/CD = GitHub Actions, registry = GHCR
+  `ghcr.io/itmg-consulting/mammoth-lts` (GITHUB_TOKEN, image name lowercased). Free for public repos, arm64 runners
+  included. No self-hosted registry.
 - CI builds only what changed on PR/push (generated dirs touched, or known-test-failures for `make test`); weekly
   schedule and manual runs rebuild everything; changes to tools/run-php-tests.sh, tools/tags.sh or the workflow rebuild all.
 

@@ -20,7 +20,7 @@ Security-patched Docker images for end-of-life PHP: **PHP branches 7.0 → 8.1 w
 | 7.0, 7.1, 7.3, 7.4, 8.0, 8.1 | planned | | |
 
 Each branch is built on the base images docker-library last published it on (same tags as Docker Hub, so
-`FROM php:7.2-fpm-alpine3.12` → `FROM <image>:7.2-fpm-alpine3.12` is a drop-in change; **those OS releases are
+`FROM php:7.2-fpm-alpine3.12` → `FROM ghcr.io/itmg-consulting/mammoth-lts:7.2-fpm-alpine3.12` is a drop-in change; **those OS releases are
 EOL themselves**, Debian ones install from archive.debian.org) and on the currently supported ones, which we recommend.
 Suite-less and `-alpine` aliases keep their Docker Hub meaning (`7.2-fpm` = buster, `7.2-fpm-alpine` = alpine3.12).
 
@@ -30,7 +30,7 @@ built here: use the official image.
 ## Images
 
 ```
-<registry>/<image>:<tag>
+ghcr.io/itmg-consulting/mammoth-lts:<tag>
 ```
 
 Tags follow the official image, plus the patch level of the build:
@@ -48,7 +48,7 @@ Images are rebuilt weekly for base image updates: the PHP inside a `-pN` tag nev
 `php -v` and `PHP_VERSION` report the patch level of the build:
 
 ```
-$ docker run --rm <image>:7.2-cli php -v
+$ docker run --rm ghcr.io/itmg-consulting/mammoth-lts:7.2-cli php -v
 PHP 7.2.34-p1 (cli) (built: Oct 21 2026 23:57:37) ( NTS )
 ```
 
