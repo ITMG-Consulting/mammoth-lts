@@ -4,7 +4,8 @@
 php-src advisories (https://github.com/php/php-src/security/advisories) only list the supported branches, so an
 advisory published after the last upstream release of an EOL branch is "to triage" for that branch until either:
   - one of its identifiers (GHSA / CVE) appears in the applied patches or in the Sury changelog -> covered
-  - patches/<version>/triage has a line "<GHSA-id> <status>: <reason>" (status: not-affected, wontfix, pending)
+  - patches/<version>/triage has a line "<GHSA-id> <status>: <reason>" (status: covered when the fix carries no
+    identifier, not-affected, wontfix, pending)
 
 Writes data/php-src-advisories.json (advisory cache) and data/coverage.json (read by tools/security-report.py).
 Exit code 1 when an advisory is untriaged, so CI can flag it.
@@ -18,7 +19,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 ADVISORIES = ROOT / "data" / "php-src-advisories.json"
 COVERAGE = ROOT / "data" / "coverage.json"
-TRIAGE_RE = re.compile(r"^(GHSA(?:-[0-9a-z]{4}){3})\s+(not-affected|wontfix|pending)\s*:\s*(.+)$")
+TRIAGE_RE = re.compile(r"^(GHSA(?:-[0-9a-z]{4}){3})\s+(covered|not-affected|wontfix|pending)\s*:\s*(.+)$")
 
 
 def fetch_json(url):

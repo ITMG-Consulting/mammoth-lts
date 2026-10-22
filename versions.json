@@ -6,7 +6,7 @@
     "url": "https://www.php.net/distributions/php-7.2.34.tar.xz",
     "ascUrl": "https://www.php.net/distributions/php-7.2.34.tar.xz.asc",
     "sha256": "409e11bc6a2c18707dfc44bc61c820ddfd81e17481470f3405ee7822d8379903",
-    "extraVersion": "-p1",
+    "extraVersion": "-p2",
     "patches": true,
     "variants": [
       "buster/cli",

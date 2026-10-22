@@ -1,0 +1,147 @@
+Origin: https://github.com/php/php-src/commit/3f40b65323dd1b85e9bab6878237d3867e449d5c
+Advisory: GHSA-w476-322c-wpvm, CVE-2025-14179
+Imported-by: backported to 7.2 by hand (quoter NUL-safe + explicit SQL length on the 7.2 code, built and tested on Debian bookworm with Firebird 3 and trixie with Firebird 4: ext/pdo_firebird/tests no new failure, new test fails on the old code)
+
+From 6011b504d01497b5f2334fe7088dec5e6b1ad014 Mon Sep 17 00:00:00 2001
+From: Saki Takamachi <saki@sakiot.com>
+Date: Thu, 22 Oct 2026 09:07:50 +0000
+Subject: [PATCH] GHSA-w476-322c-wpvm: [pdo_firebird] Fix SQL injection via NUL
+ bytes in quoted strings
+
+Fixes GHSA-w476-322c-wpvm
+Fixes CVE-2025-14179
+
+Backport of php-src 3f40b65323dd1b85e9bab6878237d3867e449d5c (PHP-8.2) to PHP 7.2:
+- 7.2 has no getToken()-based preprocess(): its byte-copying named-parameter loop in firebird_alloc_prepare_stmt() already keeps NUL bytes, so only the resulting length is computed and passed to isc_dsql_prepare() instead of 0 (NUL-terminated); the strncpy/strncat/p_peek hunks of preprocess() do not apply
+- firebird_handle_quoter(): same NUL-safe counting/copying loops, on the 7.2 char **quoted/size_t *quotedlen API
+- test rewritten for the 7.2 pdo_firebird test harness (testdb.inc without $dbh, no --EXTENSIONS--/--XLEAK--)
+- not compiled: no Firebird client library on Alpine; quoter and length computation checked in a standalone harness
+---
+ ext/pdo_firebird/firebird_driver.c            | 29 +++++++++-----
+ .../tests/ghsa-w476-322c-wpvm.phpt            | 39 +++++++++++++++++++
+ 2 files changed, 58 insertions(+), 10 deletions(-)
+ create mode 100644 ext/pdo_firebird/tests/ghsa-w476-322c-wpvm.phpt
+
+diff --git a/ext/pdo_firebird/firebird_driver.c b/ext/pdo_firebird/firebird_driver.c
+index b238ea63..00de2594 100644
+--- a/ext/pdo_firebird/firebird_driver.c
++++ b/ext/pdo_firebird/firebird_driver.c
+@@ -244,8 +244,9 @@ static int firebird_handle_quoter(pdo_dbh_t *dbh, const char *unquoted, size_t u
+ 	char **quoted, size_t *quotedlen, enum pdo_param_type paramtype)
+ {
+ 	size_t qcount = 0;
+-	char const *co, *l, *r;
++	char const *co, *l;
+ 	char *c;
++	const char *end;
+ 
+ 	if (!unquotedlen) {
+ 		*quotedlen = 2;
+@@ -254,9 +255,15 @@ static int firebird_handle_quoter(pdo_dbh_t *dbh, const char *unquoted, size_t u
+ 		return 1;
+ 	}
+ 
++	end = unquoted + unquotedlen;
++
+ 	/* Firebird only requires single quotes to be doubled if string lengths are used */
+ 	/* count the number of ' characters */
+-	for (co = unquoted; (co = strchr(co,'\'')); qcount++, co++);
++	for (co = unquoted; co < end; co++) {
++		if (*co == '\'') {
++			qcount++;
++		}
++	}
+ 
+ 	if (UNEXPECTED(unquotedlen + 2 > ZSTR_MAX_LEN - qcount)) {
+ 		return 0;
+@@ -267,15 +274,14 @@ static int firebird_handle_quoter(pdo_dbh_t *dbh, const char *unquoted, size_t u
+ 	*c++ = '\'';
+ 
+ 	/* foreach (chunk that ends in a quote) */
+-	for (l = unquoted; (r = strchr(l,'\'')); l = r+1) {
+-		strncpy(c, l, r-l+1);
+-		c += (r-l+1);
+-		/* add the second quote */
+-		*c++ = '\'';
++	for (l = unquoted; l < end; l++) {
++		*c++ = *l;
++		if (*l == '\'') {
++			/* add the second quote */
++			*c++ = '\'';
++		}
+ 	}
+ 
+-	/* copy the remainder */
+-	strncpy(c, l, *quotedlen-(c-*quoted)-1);
+ 	(*quoted)[*quotedlen-1] = '\'';
+ 	(*quoted)[*quotedlen]   = '\0';
+ 
+@@ -369,6 +375,7 @@ static int firebird_alloc_prepare_stmt(pdo_dbh_t *dbh, const char *sql, size_t s
+ 	pdo_firebird_db_handle *H = (pdo_firebird_db_handle *)dbh->driver_data;
+ 	char *c, *new_sql, in_quote, in_param, pname[64], *ppname;
+ 	zend_long l, pindex = -1;
++	size_t new_sql_len;
+ 
+ 	/* Firebird allows SQL statements up to 64k, so bail if it doesn't fit */
+ 	if (sql_len > 65536) {
+@@ -428,9 +435,11 @@ static int firebird_alloc_prepare_stmt(pdo_dbh_t *dbh, const char *sql, size_t s
+ 		}
+ 		*c++ = sql[l];
+ 	}
++	/* the loop above also copied the terminating NUL byte of sql */
++	new_sql_len = c - new_sql - 1;
+ 
+ 	/* prepare the statement */
+-	if (isc_dsql_prepare(H->isc_status, &H->tr, s, 0, new_sql, PDO_FB_DIALECT, out_sqlda)) {
++	if (isc_dsql_prepare(H->isc_status, &H->tr, s, new_sql_len, new_sql, PDO_FB_DIALECT, out_sqlda)) {
+ 		RECORD_ERROR(dbh);
+ 		efree(new_sql);
+ 		return 0;
+diff --git a/ext/pdo_firebird/tests/ghsa-w476-322c-wpvm.phpt b/ext/pdo_firebird/tests/ghsa-w476-322c-wpvm.phpt
+new file mode 100644
+index 00000000..252894fc
+--- /dev/null
++++ b/ext/pdo_firebird/tests/ghsa-w476-322c-wpvm.phpt
+@@ -0,0 +1,39 @@
++--TEST--
++GHSA-w476-322c-wpvm: SQL injection in pdo_firebird via NUL bytes in quoted strings
++--SKIPIF--
++<?php if (!extension_loaded('interbase') || !extension_loaded('pdo_firebird')) die('skip'); ?>
++--FILE--
++<?php
++
++require("testdb.inc");
++
++$dbh = new PDO("firebird:dbname=$test_base", $user, $password) or die;
++
++$dbh->exec('CREATE TABLE ghsa_w476_322c_wpvm (name VARCHAR(255))');
++
++$param = $dbh->quote("\0");
++$param2 = $dbh->quote('or 1=1--');
++var_export($param);
++echo("\n");
++
++echo "prepare: ";
++$stmt = $dbh->prepare("SELECT * FROM ghsa_w476_322c_wpvm WHERE name = {$param} AND name = {$param2}");
++$stmt->execute();
++echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC)) . "\n";
++
++echo "query:   ";
++$stmt = $dbh->query("SELECT * FROM ghsa_w476_322c_wpvm WHERE name = {$param} AND name = {$param2}");
++echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC)) . "\n";
++
++echo "exec:    ";
++$affectedRows = $dbh->exec("UPDATE ghsa_w476_322c_wpvm SET name = 'updated' WHERE name = {$param} AND name = {$param2}");
++echo $affectedRows . "\n";
++
++unset($stmt);
++unset($dbh);
++?>
++--EXPECT--
++'\'' . "\0" . '\''
++prepare: []
++query:   []
++exec:    0
+-- 
+2.52.0
+

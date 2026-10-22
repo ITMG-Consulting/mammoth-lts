@@ -27,6 +27,65 @@ Suite-less and `-alpine` aliases keep their Docker Hub meaning (`7.2-fpm` = bust
 A branch is generated once `patches/<version>/series` exists (`versions.sh`). Supported branches (8.2+) are not
 built here: use the official image.
 
+## Security coverage
+
+### PHP 7.2 (`7.2.34-p2`)
+
+Every php-src security advisory published since the 7.2.34 release (October 2020) is either fixed or triaged:
+
+| | Advisories |
+| --- | --- |
+| Published by php-src since 7.2.34 | **66** |
+| Fixed by the deb.sury.org series | 30 |
+| Fixed by our own backports of php-src commits (`patches/7.2/9002`–`9022`) | 21 |
+| Not affecting 7.2 | 14 |
+| Not fixed | 1 |
+| Not triaged yet | **0** |
+
+60 CVEs are fixed since the 7.2.34 release; [SECURITY.md](SECURITY.md) lists each one with its advisory, CVSS score
+and source, and gives the reason for every advisory not fixed.
+
+- **Fixed by deb.sury.org**: among others PHP-CGI argument injection (CVE-2024-4577 and its bypasses),
+  `phar_dir_read()` overflow, `proc_open()` command injection, SOAP Apache Map use-after-free, state corruption after
+  a bailout (CVE-2026-109618/109619), pgsql `E'...'` SQL injection, FPM status XSS. CVEs from before php-src started
+  publishing GitHub advisories (2020–2023) were checked by hand: all fixed by deb.sury.org or not affecting 7.2.
+- **Fixed by our backports**: http stream wrapper (header folding, headers without colon, CRLF / basic auth header
+  check, redirect `Location` truncation and over-read, credential leak on cross-origin redirects), SOAP (NULL
+  dereference, HTTP body overflow, unbounded recursion), mysqlnd heap over-reads (2 advisories), pgsql escaping
+  errors, pdo_firebird NUL quoting, OpenSSL (wildcard out-of-bounds read, CN fallback after SAN mismatch), FastCGI
+  IPv6 `allowed_clients` bypass, NUL bytes in hostnames and `dns_get_record()`, `XML_OPTION_SKIP_TAGSTART`
+  out-of-bounds read, phar tar entry injection, `convert.*` filters info leak, `FILTER_SANITIZE_ENCODED` 0xFF.
+  Each backport carries the upstream tests, adapted to 7.2. For 20 of the 21, we reproduced the flaw on the unpatched
+  code and checked that the fix removes it. The 21st (FILTER_SANITIZE_ENCODED) depends on uninitialised stack memory,
+  so it cannot be reproduced reliably.
+- **Not affecting 7.2**: the vulnerable code does not exist in 7.2 (added in 7.3 to 8.4), Windows-only issues, and
+  the `urldecode()` ctype issue, which can only read out of bounds on NetBSD (glibc and musl are safe).
+- **Not fixed**: the Marvin attack (CVE-2024-2408), a timing side channel in RSA decryption with PKCS#1 v1.5
+  padding. php-src has no fix for it, in any version. The implicit rejection of OpenSSL ≥ 3.2 mitigates it, so
+  exposure depends on the base image (tested: an invalid ciphertext is rejected with an error, which is the oracle,
+  or implicitly):
+
+  | Base image | OpenSSL | Marvin |
+  | --- | --- | --- |
+  | trixie, alpine3.24, alpine3.23 | 3.5 | mitigated |
+  | bookworm | 3.0 (no backport) | exposed |
+  | buster, stretch, alpine3.12, alpine3.11 | 1.1 | exposed |
+
+  The default tags `7.2-fpm` (buster) and `7.2-fpm-alpine` (alpine3.12) are exposed. Only applications that decrypt
+  with an RSA private key are concerned: `openssl_private_decrypt()` (its default padding is PKCS#1 v1.5) and
+  `openssl_open()`. The attacker must also be able to submit many ciphertexts and time the responses. TLS is not
+  affected (PHP does not decrypt RSA as a TLS client; the web server handles TLS). If your application decrypts RSA,
+  use a trixie or alpine3.23 / 3.24 image, or switch to OAEP padding (`OPENSSL_PKCS1_OAEP_PADDING`).
+
+Outside this tracking:
+
+- **Base OS libraries of the historic suites**: alpine3.11 / 3.12, stretch and buster are end-of-life. Their
+  OpenSSL, libxml2, curl, etc. no longer get fixes; only PHP itself is patched. Prefer the current suites, which pick
+  up their distribution's updates on every weekly rebuild.
+- **PHP bugs fixed upstream without a security advisory**, and PECL extensions you install yourself.
+- **Known 7.2 issue with no advisory**: `pdo_firebird` copies a `:name` parameter longer than 71 characters from the
+  SQL text into a fixed stack buffer. The SQL text alone can crash the process this way. Not fixed yet.
+
 ## Images
 
 ```
@@ -96,6 +155,8 @@ PHP 7 also gets the compiler flags deb.sury.org uses for these versions on curre
 
    ```
    GHSA-xxxx-xxxx-xxxx not-affected: code introduced in 8.3
+   GHSA-xxxx-xxxx-xxxx covered: fixed by Sury 0154, which does not name the advisory
+   GHSA-xxxx-xxxx-xxxx wontfix: no php-src fix, mitigated by OpenSSL >= 3.2
    GHSA-xxxx-xxxx-xxxx pending: backport in progress
    ```
 

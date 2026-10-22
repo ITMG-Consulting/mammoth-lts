@@ -56,14 +56,16 @@ RUN set -eux; \
 # -D_LARGEFILE_SOURCE and -D_FILE_OFFSET_BITS=64 (https://www.php.net/manual/en/intro.filesystem.php)
 # PHP 7 predates gcc 14+ (C23 by default in gcc 15, incompatible-pointer-types as an error) and ICU 75+ (C++17 headers)
 # same flags as deb.sury.org for these versions
-ENV PHP_CFLAGS="-fstack-protector-strong -fpic -fpie -O2 -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -std=gnu99 -Wno-error=incompatible-pointer-types -fno-strict-aliasing"
+# -fpermissive: gcc 14 makes implicit declarations / implicit int errors, which silently fails configure checks
+# (getaddrinfo, pread/pwrite, ZEND_MM_ALIGNMENT, POSIX readdir_r...)
+ENV PHP_CFLAGS="-fstack-protector-strong -fpic -fpie -O2 -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -std=gnu99 -Wno-error=incompatible-pointer-types -fno-strict-aliasing -fpermissive"
 ENV CXXFLAGS="-fstack-protector-strong -fpic -fpie -O2 -std=c++17"
 ENV PHP_CPPFLAGS="$PHP_CFLAGS"
 ENV PHP_LDFLAGS="-Wl,-O1 -pie"
 
 ENV GPG_KEYS 1729F83938DA44E27BA0F4D3DBDB397470D12172 B1B44D8F021E4E2D6021E995DC9FF8D3EE5AF27F
 
-ENV PHP_VERSION 7.2.34-p1
+ENV PHP_VERSION 7.2.34-p2
 ENV PHP_URL="https://www.php.net/distributions/php-7.2.34.tar.xz" PHP_ASC_URL="https://www.php.net/distributions/php-7.2.34.tar.xz.asc"
 ENV PHP_SHA256="409e11bc6a2c18707dfc44bc61c820ddfd81e17481470f3405ee7822d8379903"
 
@@ -197,10 +199,10 @@ RUN set -eux; \
 	; \
 # "php -v" / PHP_VERSION report the patch level of this build, e.g. 7.2.34-p3 (> 7.2.34 for version_compare() and composer)
 	sed -ri \
-		-e 's/^(#define PHP_EXTRA_VERSION ).*/\1"-p1"/' \
-		-e 's/^(#define PHP_VERSION "[0-9.]+).*/\1-p1"/' \
+		-e 's/^(#define PHP_EXTRA_VERSION ).*/\1"-p2"/' \
+		-e 's/^(#define PHP_VERSION "[0-9.]+).*/\1-p2"/' \
 		main/php_version.h; \
-	grep -q '^#define PHP_VERSION "7.2.34-p1"$' main/php_version.h; \
+	grep -q '^#define PHP_VERSION "7.2.34-p2"$' main/php_version.h; \
 	make -j "$(nproc)"; \
 	find -type f -name '*.a' -delete; \
 	make install; \

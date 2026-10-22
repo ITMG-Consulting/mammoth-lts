@@ -113,8 +113,8 @@
     "patched": [
      "8.3.6"
     ],
-    "status": "untriaged",
-    "reason": null
+    "status": "not-affected",
+    "reason": "bug in the mb_encode_mimeheader() rewrite of PHP 8.3 (only 8.3.6 patched)"
    },
    {
     "ghsa": "GHSA-pc52-254m-w9w7",
@@ -139,8 +139,8 @@
     "severity": "MEDIUM",
     "score": 5.9,
     "patched": [],
-    "status": "untriaged",
-    "reason": null
+    "status": "wontfix",
+    "reason": "no php-src fix (any version), timing side channel of RSA PKCS#1 v1.5 decryption (openssl_private_decrypt() default padding, openssl_open()); mitigated by the implicit rejection of OpenSSL >= 3.2: trixie, alpine3.23/3.24 mitigated, bookworm (3.0), buster, stretch, alpine3.11/3.12 (1.1) exposed (tested); use a mitigated image or OAEP padding"
    },
    {
     "ghsa": "GHSA-w8qr-v226-r27w",
@@ -169,8 +169,8 @@
      " 8.3.8",
      "8.1.29"
     ],
-    "status": "untriaged",
-    "reason": null
+    "status": "not-affected",
+    "reason": "proc_open() command line escaping on Windows only"
    },
    {
     "ghsa": "GHSA-865w-9rf3-2wh5",
@@ -184,8 +184,8 @@
      "8.2.24",
      "8.3.12"
     ],
-    "status": "untriaged",
-    "reason": null
+    "status": "not-affected",
+    "reason": "buffered FPM child logging (zlog_stream, log_buffering) was added in 7.3, 7.2's fpm_stdio_child_said() logs each line through zlog()"
    },
    {
     "ghsa": "GHSA-9pqp-7h25-4f32",
@@ -334,7 +334,7 @@
      "8.2.26",
      "8.3.14"
     ],
-    "status": "untriaged",
+    "status": "covered",
     "reason": null
    },
    {
@@ -350,7 +350,7 @@
      "8.3.19",
      "8.4.5"
     ],
-    "status": "untriaged",
+    "status": "covered",
     "reason": null
    },
    {
@@ -366,7 +366,7 @@
      "8.3.19",
      "8.4.5"
     ],
-    "status": "untriaged",
+    "status": "covered",
     "reason": null
    },
    {
@@ -382,7 +382,7 @@
      "8.3.19",
      "8.4.5"
     ],
-    "status": "untriaged",
+    "status": "covered",
     "reason": null
    },
    {
@@ -398,7 +398,7 @@
      "8.3.19",
      "8.4.5"
     ],
-    "status": "untriaged",
+    "status": "covered",
     "reason": null
    },
    {
@@ -414,8 +414,8 @@
      "8.3.19",
      "8.4.5"
     ],
-    "status": "untriaged",
-    "reason": null
+    "status": "not-affected",
+    "reason": "libxml only reads the charset of the HTTP Content-Type response header since 7.4.17 (bug #51903, php-src f901bec494a), 7.2's ext/libxml/libxml.c never inspects the http wrapper headers"
    },
    {
     "ghsa": "GHSA-hgf5-96fm-v528",
@@ -430,7 +430,7 @@
      "8.3.19",
      "8.4.5"
     ],
-    "status": "untriaged",
+    "status": "covered",
     "reason": null
    },
    {
@@ -444,8 +444,8 @@
      "8.3.19",
      "8.4.5"
     ],
-    "status": "untriaged",
-    "reason": null
+    "status": "not-affected",
+    "reason": "??= live range bug, the ??= operator was added in PHP 7.4"
    },
    {
     "ghsa": "GHSA-453j-q27h-5p8x",
@@ -460,7 +460,7 @@
      "8.3.23",
      "8.4.10"
     ],
-    "status": "untriaged",
+    "status": "covered",
     "reason": null
    },
    {
@@ -476,7 +476,7 @@
      "8.3.23",
      "8.4.10"
     ],
-    "status": "untriaged",
+    "status": "covered",
     "reason": null
    },
    {
@@ -492,7 +492,7 @@
      "8.3.23",
      "8.4.10"
     ],
-    "status": "untriaged",
+    "status": "covered",
     "reason": null
    },
    {
@@ -509,8 +509,8 @@
      "8.4.16",
      "8.5.1"
     ],
-    "status": "untriaged",
-    "reason": null
+    "status": "not-affected",
+    "reason": "php_read_stream_all_chunks() (getimagesize) does not exist in 7.2"
    },
    {
     "ghsa": "GHSA-h96m-rvf9-jgm2",
@@ -543,8 +543,8 @@
      "8.4.16",
      "8.5.1"
     ],
-    "status": "untriaged",
-    "reason": null
+    "status": "not-affected",
+    "reason": "7.2's PDO quoter handler returns an int that both call sites in pdo_sql_parser.re check; the NULL dereference came with the zend_string* quoter API of PHP 8.1"
    },
    {
     "ghsa": "GHSA-www2-q4fc-65wf",
@@ -560,7 +560,7 @@
      "8.4.16",
      "8.5.1"
     ],
-    "status": "untriaged",
+    "status": "covered",
     "reason": null
    },
    {
@@ -624,8 +624,8 @@
      "8.4.21",
      "8.5.6"
     ],
-    "status": "untriaged",
-    "reason": null
+    "status": "not-affected",
+    "reason": "negative char passed to ctype.h only reads out of bounds on NetBSD; glibc tables cover -128..255 (documented in ctype.h), musl ctype functions do no memory load (checked by disassembly); same urldecode/parse_url/... output for all bytes 0x80-0xff on glibc 2.36, 2.41 and musl, images are Linux only"
    },
    {
     "ghsa": "GHSA-74r9-qxhc-fx53",
@@ -638,8 +638,8 @@
      "8.4.21",
      "8.5.6"
     ],
-    "status": "untriaged",
-    "reason": null
+    "status": "not-affected",
+    "reason": "mbfl_name2encoding_ex() (length-bounded lookup) does not exist in 7.2, mbfl_name2encoding() compares NUL-terminated names"
    },
    {
     "ghsa": "GHSA-4jhr-8w89-j733",
@@ -652,8 +652,8 @@
      "8.4.21",
      "8.5.6"
     ],
-    "status": "untriaged",
-    "reason": null
+    "status": "not-affected",
+    "reason": "the xmlns attribute unlinking in DOMNode::C14N() was added in PHP 8.4, 7.2 calls xmlC14NDocSaveTo() directly"
    },
    {
     "ghsa": "GHSA-7qg2-v9fj-4mwv",
@@ -700,8 +700,8 @@
      "8.4.21",
      "8.5.6"
     ],
-    "status": "untriaged",
-    "reason": null
+    "status": "not-affected",
+    "reason": "the cached MBREX(current_mbctype_mbfl_encoding) pointer was added in PHP 8.0, 7.2's php_mb_check_encoding() looks the encoding up by name and rejects unknown ones"
    },
    {
     "ghsa": "GHSA-w476-322c-wpvm",
@@ -716,7 +716,7 @@
      "8.4.21",
      "8.5.6"
     ],
-    "status": "untriaged",
+    "status": "covered",
     "reason": null
    },
    {
@@ -732,8 +732,8 @@
      "8.4.23",
      "8.5.8"
     ],
-    "status": "untriaged",
-    "reason": null
+    "status": "covered",
+    "reason": "Sury 0154 (openssl_encrypt() AES-WRAP-PAD heap overflow, backported from 8.2.32)"
    },
    {
     "ghsa": "GHSA-mhmq-mmqj-2v39",
@@ -747,8 +747,8 @@
      "8.4.21",
      "8.5.6"
     ],
-    "status": "untriaged",
-    "reason": null
+    "status": "not-affected",
+    "reason": "7.2 has no SSL peer name reset after a failed TLS setup in the http wrapper (bails out on a NULL stream)"
    },
    {
     "ghsa": "GHSA-7qpv-r5mr-78m4",
@@ -777,8 +777,8 @@
      "8.4.24",
      "8.5.9"
     ],
-    "status": "untriaged",
-    "reason": null
+    "status": "not-affected",
+    "reason": "bc_str2num() fractional_end bookkeeping of the PHP 8.4 bcmath rewrite (only 8.4/8.5 patched)"
    },
    {
     "ghsa": "GHSA-vc5h-9ppw-p5f3",
@@ -809,7 +809,7 @@
      "8.4.26",
      "8.5.11"
     ],
-    "status": "untriaged",
+    "status": "covered",
     "reason": null
    },
    {
@@ -825,7 +825,7 @@
      "8.4.26",
      "8.5.11"
     ],
-    "status": "untriaged",
+    "status": "covered",
     "reason": null
    },
    {
@@ -841,7 +841,7 @@
      "8.4.25",
      "8.5.10"
     ],
-    "status": "untriaged",
+    "status": "covered",
     "reason": null
    },
    {
@@ -857,7 +857,7 @@
      "8.4.26",
      "8.5.11"
     ],
-    "status": "untriaged",
+    "status": "covered",
     "reason": null
    },
    {
@@ -873,7 +873,7 @@
      "8.4.26",
      "8.5.11"
     ],
-    "status": "untriaged",
+    "status": "covered",
     "reason": null
    },
    {
@@ -889,7 +889,7 @@
      "8.4.26",
      "8.5.11"
     ],
-    "status": "untriaged",
+    "status": "covered",
     "reason": null
    },
    {
@@ -905,8 +905,8 @@
      "8.4.26",
      "8.5.11"
     ],
-    "status": "untriaged",
-    "reason": null
+    "status": "not-affected",
+    "reason": "Windows reserved device names, Windows only"
    },
    {
     "ghsa": "GHSA-vvx9-73fr-5jjx",
@@ -921,7 +921,7 @@
      "8.4.26",
      "8.5.11"
     ],
-    "status": "untriaged",
+    "status": "covered",
     "reason": null
    },
    {
@@ -937,7 +937,7 @@
      "8.4.26",
      "8.5.11"
     ],
-    "status": "untriaged",
+    "status": "covered",
     "reason": null
    },
    {
@@ -953,7 +953,7 @@
      "8.4.26",
      "8.5.11"
     ],
-    "status": "untriaged",
+    "status": "covered",
     "reason": null
    },
    {
@@ -969,7 +969,7 @@
      "8.4.26",
      "8.5.11"
     ],
-    "status": "untriaged",
+    "status": "covered",
     "reason": null
    },
    {
@@ -985,7 +985,7 @@
      "8.4.26",
      "8.5.11"
     ],
-    "status": "untriaged",
+    "status": "covered",
     "reason": null
    },
    {
