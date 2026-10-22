@@ -112,7 +112,7 @@ docker-php-ext-install intl gd bcmath), `make test` vs known failures, advisory 
   reachable from SQL text (even a `:name` in a comment), stack protector abort from 72 chars (DoS). No php-src advisory.
 - docker-library/php: all 21 commits since the fork point triaged in upstream.reviewed.
 
-- 7.4 = `-p1` (local, not pushed yet): Sury 7.4.33-31 (114 patches, KEEP_FROM=0048, 0052/0053 README and 0128
+- 7.4 = `-p1`, pushed and published (CI run 39764790360 green, 117 jobs; 7.2 republished too): Sury 7.4.33-31 (114 patches, KEEP_FROM=0048, 0052/0053 README and 0128
   telemetry excluded) + 9001 w476 pdo_firebird (tested on Debian with Firebird 3/4) + 9002 GH-14834 (PEAR install
   with libxml2 >= 2.13). All 66 advisories triaged (58 Sury, 1 ours, 6 not-affected, Marvin wontfix); Sury's
   "partial" r6x9 is complete on the C side (0151 un-XFAILs the 14 tests). run-php-tests 7.4: 50 known failures
@@ -125,7 +125,7 @@ docker-php-ext-install intl gd bcmath), `make test` vs known failures, advisory 
 
 ## Next (agreed with the maintainer)
 
-1. Push 7.4, check the CI run; then migrate aria-mare (/app/aria-mare-website, php:7.4-fpm-alpine = alpine3.16; its
+1. Migrate aria-mare (/app/aria-mare-website, php:7.4-fpm-alpine = alpine3.16; its
    Dockerfile copies php.ini / pool config to /etc/php7/, which the official image ignores) and civ-corse.
 2. Credits (Sury / docker-library) in README, trademark check of "Mammoth LTS" (maintainer).
 3. civ-corse (/app/civ-corse/civ-corse) moves to ghcr.io/itmg-consulting/mammoth-lts:7.2-fpm-alpine3.12 or
