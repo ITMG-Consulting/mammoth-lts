@@ -122,3 +122,4 @@
 9021-GHSA-w476-322c-wpvm-pdo-firebird-nul-sql-injection.patch
 9022-GHSA-88hq-2827-7pg6-convert-filters-lbchars-nul.patch
 9023-mysqlnd-do-not-free-malformed-row-fields-twice.patch
+9024-GH-11678-musl-cookie-seeker.patch

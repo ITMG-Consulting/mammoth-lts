@@ -4,3 +4,5 @@
 9002-Fix-GH-14834-libxml2-2.13-entities-in-attributes.patch
 # fix of the mysqlnd GHSA-h35g / GHSA-r6x9 backports (double free of a malformed row's fields before PHP 8.1)
 9003-mysqlnd-do-not-free-malformed-row-fields-twice.patch
+# https://github.com/php/php-src/issues/11678 (php-src 577b8ae422, 8.2+): on musl the fopencookie() seeker takes off_t *
+9004-GH-11678-musl-cookie-seeker.patch

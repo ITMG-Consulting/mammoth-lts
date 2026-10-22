@@ -1,0 +1,6 @@
+# https://github.com/php/php-src/issues/14834 (php-src 67259e45, context adapted to 8.1), needed with libxml2 >= 2.13
+9001-Fix-GH-14834-libxml2-2.13-entities-in-attributes.patch
+# https://github.com/php/php-src/issues/11678 (php-src 577b8ae422, 8.2+): musl >= 1.2.4 has no off64_t, the cookie seeker takes off_t *
+9002-GH-11678-musl-cookie-seeker.patch
+# https://github.com/php/php-src/issues/18743 (php-src b3c8afe272, 8.3+): binutils >= 2.44 (alpine3.22+) rejects the ZTS JIT tlsgd sequence
+9003-GH-18743-jit-tlsgd-binutils.patch

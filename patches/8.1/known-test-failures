@@ -1,0 +1,19 @@
+# make test failures expected on alpine3.23 (libxml2 2.13 messages, OpenSSL 3.5 vs 2018-era test certificates and TLS 1.0/1.1 disabled, no tty, musl locales)
+# tools/run-php-tests.sh fails on any failure not listed here
+# Zend/tests/gh11189*.phpt, Zend/tests/fibers/get-return-after-bailout.phpt: Sury 0083 (CVE-2026-109618/109619, no user code
+# runs after a memory-limit bailout) changes their output; php-src rewrote them in the same commit (3584a98bda), Sury did not
+Zend/tests/fibers/get-return-after-bailout.phpt
+Zend/tests/gh11189.phpt
+Zend/tests/gh11189_1.phpt
+Zend/tests/lc_ctype_inheritance.phpt
+ext/openssl/tests/bug74341.phpt
+ext/openssl/tests/openssl_x509_parse_basic.phpt
+ext/openssl/tests/sni_server.phpt
+ext/openssl/tests/sni_server_key_cert.phpt
+tests/basic/consistent_float_string_casts.phpt
+tests/lang/bug30638.phpt
+tests/output/stream_isatty_err.phpt
+tests/output/stream_isatty_in-err.phpt
+tests/output/stream_isatty_in-out.phpt
+tests/output/stream_isatty_out-err.phpt
+tests/output/stream_isatty_out.phpt

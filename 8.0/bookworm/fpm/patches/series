@@ -93,3 +93,5 @@
 0137-Avoid-state-corruption-via-bailout.patch
 9001-mysqlnd-do-not-free-malformed-row-fields-twice.patch
 9002-Fix-GH-14834-libxml2-2.13-entities-in-attributes.patch
+9003-GH-11678-musl-cookie-seeker.patch
+9004-GH-18743-jit-tlsgd-binutils.patch

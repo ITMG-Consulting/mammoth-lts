@@ -63,7 +63,7 @@ ENV PHP_LDFLAGS="-Wl,-O1 -pie"
 
 ENV GPG_KEYS 1729F83938DA44E27BA0F4D3DBDB397470D12172 BFDDD28642824F8118EF77909B67A5C12229118F 2C16C765DBE54A088130F1BC4B9B5F600B55F3B4 39B641343D8C104B2B146DC3F9C39DC0B9698544
 
-ENV PHP_VERSION 8.0.30-p1
+ENV PHP_VERSION 8.0.30-p2
 ENV PHP_URL="https://www.php.net/distributions/php-8.0.30.tar.xz" PHP_ASC_URL="https://www.php.net/distributions/php-8.0.30.tar.xz.asc"
 ENV PHP_SHA256="216ab305737a5d392107112d618a755dc5df42058226f1670e9db90e77d777d9"
 
@@ -193,10 +193,10 @@ RUN set -eux; \
 	; \
 # "php -v" / PHP_VERSION report the patch level of this build, e.g. 7.2.34-p3 (> 7.2.34 for version_compare() and composer)
 	sed -ri \
-		-e 's/^(#define PHP_EXTRA_VERSION ).*/\1"-p1"/' \
-		-e 's/^(#define PHP_VERSION "[0-9.]+).*/\1-p1"/' \
+		-e 's/^(#define PHP_EXTRA_VERSION ).*/\1"-p2"/' \
+		-e 's/^(#define PHP_VERSION "[0-9.]+).*/\1-p2"/' \
 		main/php_version.h; \
-	grep -q '^#define PHP_VERSION "8.0.30-p1"$' main/php_version.h; \
+	grep -q '^#define PHP_VERSION "8.0.30-p2"$' main/php_version.h; \
 	make -j "$(nproc)"; \
 	find -type f -name '*.a' -delete; \
 	make install; \

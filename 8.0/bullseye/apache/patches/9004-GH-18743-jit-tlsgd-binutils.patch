@@ -1,0 +1,31 @@
+Origin: https://github.com/php/php-src/commit/b3c8afe272a6919248986c703c2e1defc73ff707
+Adapted-by: mammoth-lts, 8.0 has only the generic x86_64 tlsgd sequence of the 3 the commit fixes (no FreeBSD/Apple variants); NEWS hunk dropped
+
+From b3c8afe272a6919248986c703c2e1defc73ff707 Mon Sep 17 00:00:00 2001
+From: Niels Dossche <7771979+nielsdos@users.noreply.github.com>
+Date: Thu, 5 Jun 2025 19:37:46 +0200
+Subject: [PATCH] Fix GH-18743: Incompatibility in Inline TLS Assembly on
+ Alpine 3.22
+
+GAS started checking the relocation for tlsgd: it must use the %rdi
+register. However, the inline assembly now uses %rax instead.
+Fix it by changing the "=a" output register to "=D".
+Source: https://github.com/bminor/binutils-gdb/blob/ec181e1710e37007a8d95c284609bfaa5868d086/gas/config/tc-i386.c#L6793
+
+gottpoff is unaffected.
+
+Closes GH-18779.
+---
+
+diff --git a/ext/opcache/jit/zend_jit_x86.dasc b/ext/opcache/jit/zend_jit_x86.dasc
+--- a/ext/opcache/jit/zend_jit_x86.dasc
++++ b/ext/opcache/jit/zend_jit_x86.dasc
+@@ -2985,7 +2985,7 @@
+ 
+ 		__asm__(
+ 			"leaq _tsrm_ls_cache@tlsgd(%%rip), %0\n"
+-			: "=a" (ti));
++			: "=D" (ti));
+ 		tsrm_tls_offset = ti[1];
+ 		tsrm_tls_index = ti[0] * 16;
+ #endif

@@ -25,3 +25,5 @@
 9022-GHSA-88hq-2827-7pg6-convert-filters-lbchars-nul.patch
 # fix of the mysqlnd GHSA-h35g / GHSA-r6x9 backports (double free of a malformed row's fields before PHP 8.1)
 9023-mysqlnd-do-not-free-malformed-row-fields-twice.patch
+# https://github.com/php/php-src/issues/11678 (php-src 577b8ae422, 8.2+): on musl the fopencookie() seeker takes off_t *
+9024-GH-11678-musl-cookie-seeker.patch

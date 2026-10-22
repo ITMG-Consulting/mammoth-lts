@@ -1,0 +1,7 @@
+# php-src advisories published after 8.1.34 that no applied patch names (tools/advisory-coverage.py)
+# <GHSA-id> covered|not-affected|wontfix|pending: reason
+GHSA-74r9-qxhc-fx53 not-affected: mbfl_name2encoding_ex() (length-bounded lookup) does not exist in 8.1, mbfl_name2encoding() compares NUL-terminated names
+GHSA-4jhr-8w89-j733 not-affected: the xmlns attribute unlinking in DOMNode::C14N() was added in PHP 8.4, 8.1 calls xmlC14NDocSaveTo() directly
+GHSA-7jrw-539f-x6vr covered: Sury 0060 (openssl_encrypt() AES-WRAP-PAD heap overflow, backported from 8.2.32)
+GHSA-mhmq-mmqj-2v39 not-affected: 8.1 has no SSL peer name reset after a failed TLS setup in the http wrapper (bails out on a NULL stream)
+GHSA-x692-q9x7-8c3f not-affected: bc_str2num() fractional_end bookkeeping of the PHP 8.4 bcmath rewrite (only 8.4/8.5 patched)

@@ -1,3 +1,7 @@
+## 7.4.33-p4 (2026-10-22)
+
+- `9004` php-src 577b8ae422 (GH-11678, fopencookie() seeker signature on musl) on alpine3.23/3.24 (musl >= 1.2.4 has no off64_t): the seeker took a position instead of a pointer, fseek() on a stream cast to FILE* (e.g. curl CURLOPT_FILE) went to a bogus offset
+
 ## 7.4.33-p3 (2026-10-22)
 
 - 9003: fix of the mysqlnd GHSA-h35g / GHSA-r6x9 backports (Sury 0101/0149): a malformed row's fields were freed twice (heap use-after-free reachable by a malicious MySQL server), found by the ASan job
