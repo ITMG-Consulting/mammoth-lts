@@ -29,6 +29,8 @@ in French; README/SECURITY are English (public project).
   pinned key `15058500A0235D97F5D10063B188E2B695BD4743`), php-src commits for what Sury lacks. Always excluded:
   packaging credits (0064/0065/0068 for 7.2) and **0144 DNS telemetry to telemetry.sury.org** (import aborts if a kept
   patch mentions telemetry/sury.org).
+- No in-house security fixes: an issue neither php-src nor deb.sury.org fixed is documented, not patched (decided
+  2026-10-22, e.g. the pdo_firebird `pname[64]` overflow). Build/compat fixes (gcc 14, libxml2 2.13...) are fine.
 - Version string: `PHP_EXTRA_VERSION="-pN"` (php -v → `7.2.34-p1`). Only `-pN` sorts above the release in
   version_compare() and parses in Composer (`-eolN` sorts below and breaks Composer). N bumps when the applied PHP
   code changes (import with a diff, local patch); never for base-image-only rebuilds.
@@ -108,7 +110,7 @@ docker-php-ext-install intl gd bcmath), `make test` vs known failures, advisory 
   Every other backport was also run against the old C code (new tests fail before, pass after), except ch8v
   (uninitialised stack byte, not deterministic); wg4p's upstream test passes on old code too (the OOB read goes to
   $index): reproduced separately (heap bytes leaked in $index keys, segfault with a 1 GiB offset).
-- Noted, not handled: 7.2 and 7.4 pdo_firebird `firebird_alloc_prepare_stmt` copies `:name` into `pname[64]` unbounded:
+- Documented, not fixed (no php-src / Sury fix, see Decisions): 7.2 and 7.4 pdo_firebird `firebird_alloc_prepare_stmt` copies `:name` into `pname[64]` unbounded:
   reachable from SQL text (even a `:name` in a comment), stack protector abort from 72 chars (DoS). No php-src advisory.
 - docker-library/php: all 21 commits since the fork point triaged in upstream.reviewed.
 
