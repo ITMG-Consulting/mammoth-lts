@@ -50,8 +50,10 @@ jobs:
             dirs="$all"
           else
             changed="$(git diff --name-only "$BASE" HEAD)"
+            # through a file: a new branch changes thousands of paths, too long for one argument (E2BIG)
+            printf '%s\n' "$changed" > "$RUNNER_TEMP/changed"
             # generated dirs embed the template, the scripts and the patches: any change there shows up in <version>/<suite>/<variant>/
-            dirs="$(jq -c --arg changed "$changed" '[.[] | . as $d | select($changed | split("\n") | any(startswith($d + "/")))]' <<< "$all")"
+            dirs="$(jq -c --rawfile changed "$RUNNER_TEMP/changed" '[.[] | . as $d | select($changed | split("\n") | any(startswith($d + "/")))]' <<< "$all")"
             # the test harness itself changed: re-run every branch
             if grep -qE '^(tools/(run-php-tests|tags)\.sh|\.github/workflows/)' <<< "$changed"; then dirs="$all"; fi
           fi
