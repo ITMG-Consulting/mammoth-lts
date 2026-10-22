@@ -232,6 +232,20 @@ CVSS and publication date, and the php-src advisories not covered yet.
 
 ## Credits and licenses
 
+Mammoth LTS mostly packages other people's work:
+
+- **[Ondřej Surý](https://deb.sury.org/)** maintains the deb.sury.org packages of every EOL PHP branch. Most of the
+  fixes here are his patch series, used as published. If these images are useful to you, consider
+  [supporting his work](https://deb.sury.org/#support).
+- **Remi Collet** ([remirepo](https://rpms.remirepo.net/)) wrote many of the PHP 7.x adaptations of the upstream fixes
+  that the deb.sury.org series carries (27 of the 114 patches for 7.4).
+- **The PHP security team and php-src contributors** wrote the fixes and their tests; our own backports (`9*.patch`)
+  only adapt their commits, and keep the `Origin:` of each.
+- **[docker-library/php](https://github.com/docker-library/php)** (Tianon Gravi, Joseph Ferguson and contributors):
+  the Dockerfile template, the `docker-php-*` scripts and the image layout all come from the official image.
+
+Licenses:
+
 - Dockerfiles and scripts: [docker-library/php](https://github.com/docker-library/php) (MIT), see [LICENSE](LICENSE).
 - Patch series: [deb.sury.org](https://deb.sury.org/) by Ondřej Surý, `debian/*` under the Expat license; patches
   derived from php-src are under the PHP License 3.01. Paid long-term support for these packages:
