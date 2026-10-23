@@ -28,6 +28,10 @@ jobs:
 
   generate:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # the last successful run on main is the base of a push (step dirs)
+      actions: read
     outputs:
       dirs: ${{ steps.dirs.outputs.dirs }}
       versions: ${{ steps.dirs.outputs.versions }}
@@ -43,9 +47,16 @@ jobs:
       # pull requests and pushes only build what changed; the weekly / manual runs rebuild everything (base image updates)
       - id: dirs
         env:
-          BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || '' }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           all="$(jq -c '[to_entries[] | select(.value) | .key as $v | .value.variants[] | "\($v)/\(.)"]' versions.json)"
+          # a push builds what changed since the last successful run on main, not since the previous push: the images
+          # of a failed or cancelled run are not published, and the next push must build them too
+          if [ "${{ github.event_name }}" = push ]; then
+            BASE="$(gh api "repos/${{ github.repository }}/actions/workflows/ci.yml/runs?branch=main&status=success&per_page=1" --jq '.workflow_runs[0].head_sha // empty')"
+            git merge-base --is-ancestor "${BASE:-0000}" HEAD 2> /dev/null || BASE=
+          fi
           if [[ "${{ github.event_name }}" =~ ^(schedule|workflow_dispatch)$ ]] || ! git cat-file -e "${BASE:-0000}^{commit}" 2> /dev/null; then
             dirs="$all"
           else

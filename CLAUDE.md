@@ -47,7 +47,8 @@ in French; README/SECURITY are English (public project).
   official image (3.24 + 3.23 since 2026-10-22).
 - Tags: official naming + `-pN` (`tools/tags.sh`). No dated tags.
 - Commits: author `Mathieu GILLOOTS <mathieu@itmg-consulting.com>` (no git identity configured here: pass it with
-  `git -c user.name=… -c user.email=…`), plus the Co-Authored-By trailer. Pushing needs the maintainer's credentials
+  `git -c user.name=… -c user.email=…`), no Co-Authored-By trailer and no mention of Claude / Anthropic in commit
+  messages (maintainer's rule). Pushing needs the maintainer's credentials
   (remote origin is SSH: git@github.com:ITMG-Consulting/mammoth-lts.git).
 - Variants: cli, fpm, zts, apache (Debian only), as upstream had for these branches.
 - Public repo https://github.com/ITMG-Consulting/mammoth-lts: CI/CD = GitHub Actions, registry = GHCR
@@ -55,6 +56,8 @@ in French; README/SECURITY are English (public project).
   included. No self-hosted registry.
 - CI builds only what changed on PR/push (generated dirs touched, or known-test-failures for `make test`); weekly
   schedule and manual runs rebuild everything; changes to tools/run-php-tests.sh, tools/tags.sh or the workflow rebuild all.
+  A push diffs against the last successful CI run on main (not the previous push, which left the images of a failed
+  run unpublished on 2026-10-23); no such run in the history (e.g. after a force-push) = rebuild all.
 
 ## Build specifics already solved (keep them)
 
