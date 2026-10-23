@@ -91,5 +91,16 @@ for version; do
 		if [ "$cmd" != 'php' ]; then
 			sed -i -e 's! php ! '"$cmd"' !g' "$version/$dir/docker-php-entrypoint"
 		fi
+
+		# PHP < 7.2 only loads "extension=<name>.so": keep the suffix upstream dropped once 7.1 was gone (a940d673)
+		case "$version" in
+			7.0 | 7.1)
+				sed -i \
+					-e 's!line="zend_extension=$module"!line="zend_extension=$moduleFile"!' \
+					-e 's!line="extension=$module"!line="extension=$moduleFile"!' \
+					"$version/$dir/docker-php-ext-enable"
+				[ "$(grep -c '=$moduleFile"' "$version/$dir/docker-php-ext-enable")" -eq 2 ]
+				;;
+		esac
 	done
 done

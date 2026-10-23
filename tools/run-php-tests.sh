@@ -31,9 +31,11 @@ make -j "$(nproc)" > /dev/null
 
 adduser -D -S tester 2> /dev/null || true
 chown -R tester /build
-su tester -s /bin/sh -c 'cd /build && NO_INTERACTION=1 REPORT_EXIT_STATUS=0 make test \
-	TESTS="Zend tests main ext/standard/tests/general_functions ext/session ext/xml ext/dom ext/simplexml ext/libxml ext/xmlreader ext/xmlwriter ext/openssl ext/sodium" \
-	> /build/tests.log 2>&1' || true
+# run-tests.php aborts on a directory that does not exist (ext/sodium came with 7.2)
+tests="$(for d in Zend tests main ext/standard/tests/general_functions ext/session ext/xml ext/dom ext/simplexml \
+	ext/libxml ext/xmlreader ext/xmlwriter ext/openssl ext/sodium; do [ ! -d "$d" ] || printf '%s ' "$d"; done)"
+su tester -s /bin/sh -c "cd /build && NO_INTERACTION=1 REPORT_EXIT_STATUS=0 make test TESTS='$tests' > /build/tests.log 2>&1" || true
+grep -q '^Tests passed' tests.log || { tail -20 tests.log; echo 'error: make test ran no test'; exit 1; }
 
 sed -n '/^FAILED TEST SUMMARY/,/^=====*$/p' tests.log | grep -oE '\[[^]]+\.phpt\]$' | tr -d '[]' | sort -u > failed
 grep -vE '^\s*(#|$)' "$src/patches/$version/known-test-failures" 2> /dev/null | sort -u > known || : > known
