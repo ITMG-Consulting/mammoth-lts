@@ -1,5 +1,7 @@
 # make test failures expected on alpine3.23 (libxml2 2.13 messages, OpenSSL 3.5 vs 2018-era test certificates, no tty, musl locales)
 # tools/run-php-tests.sh fails on any failure not listed here
+# flaky: array_intersect() on 1M elements must outlast max_execution_time=1 to hit the hard timeout; on a fast runner it does not (8.0 doubled the arrays)
+Zend/tests/bug74093.phpt
 ext/dom/tests/DOMDocument_loadHTMLfile_error1.phpt
 ext/dom/tests/DOMDocument_loadXML_error1.phpt
 ext/dom/tests/DOMDocument_loadXML_error2.phpt
