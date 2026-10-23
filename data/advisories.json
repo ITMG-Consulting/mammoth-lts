@@ -5,6 +5,102 @@
   "score": 9.8,
   "severity": "CRITICAL"
  },
+ "CVE-2019-11044": {
+  "published": "2019-12-23",
+  "cvssVersion": "3.1",
+  "score": 3.7,
+  "severity": "LOW"
+ },
+ "CVE-2019-11045": {
+  "published": "2019-12-23",
+  "cvssVersion": "3.1",
+  "score": 3.7,
+  "severity": "LOW"
+ },
+ "CVE-2019-11046": {
+  "published": "2019-12-23",
+  "cvssVersion": "3.1",
+  "score": 3.7,
+  "severity": "LOW"
+ },
+ "CVE-2019-11047": {
+  "published": "2019-12-23",
+  "cvssVersion": "3.1",
+  "score": 4.8,
+  "severity": "MEDIUM"
+ },
+ "CVE-2019-11048": {
+  "published": "2020-05-20",
+  "cvssVersion": "3.1",
+  "score": 5.3,
+  "severity": "MEDIUM"
+ },
+ "CVE-2019-11050": {
+  "published": "2019-12-23",
+  "cvssVersion": "3.1",
+  "score": 4.8,
+  "severity": "MEDIUM"
+ },
+ "CVE-2020-7059": {
+  "published": "2020-02-10",
+  "cvssVersion": "3.1",
+  "score": 6.5,
+  "severity": "MEDIUM"
+ },
+ "CVE-2020-7060": {
+  "published": "2020-02-10",
+  "cvssVersion": "3.1",
+  "score": 6.5,
+  "severity": "MEDIUM"
+ },
+ "CVE-2020-7062": {
+  "published": "2020-02-27",
+  "cvssVersion": "3.1",
+  "score": 7.5,
+  "severity": "HIGH"
+ },
+ "CVE-2020-7063": {
+  "published": "2020-02-27",
+  "cvssVersion": "3.1",
+  "score": 5.5,
+  "severity": "MEDIUM"
+ },
+ "CVE-2020-7064": {
+  "published": "2020-04-01",
+  "cvssVersion": "3.1",
+  "score": 6.5,
+  "severity": "MEDIUM"
+ },
+ "CVE-2020-7066": {
+  "published": "2020-04-01",
+  "cvssVersion": "3.1",
+  "score": 5.3,
+  "severity": "MEDIUM"
+ },
+ "CVE-2020-7067": {
+  "published": "2020-04-27",
+  "cvssVersion": "3.1",
+  "score": 7.5,
+  "severity": "HIGH"
+ },
+ "CVE-2020-7068": {
+  "published": "2020-09-09",
+  "cvssVersion": "3.1",
+  "score": 4.8,
+  "severity": "MEDIUM"
+ },
+ "CVE-2020-7069": {
+  "published": "2020-10-02",
+  "cvssVersion": "3.1",
+  "score": 5.4,
+  "severity": "MEDIUM"
+ },
+ "CVE-2020-7070": {
+  "published": "2020-10-02",
+  "cvssVersion": "3.1",
+  "score": 4.3,
+  "severity": "MEDIUM"
+ },
  "CVE-2020-7071": {
   "published": "2021-02-15",
   "cvssVersion": "3.1",

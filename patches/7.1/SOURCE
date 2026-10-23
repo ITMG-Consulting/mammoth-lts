@@ -1,0 +1,7 @@
+package: php7.1
+version: 7.1.33-81+0~20261022.128+debian13~1.gbpa88ccf
+suite: trixie
+debian-tarball: https://packages.sury.org/php/pool/main/p/php7.1/php7.1_7.1.33-81+0~20261022.128+debian13~1.gbpa88ccf.debian.tar.xz
+debian-tarball-sha256: 83ae35490eaa9f3efeb14fde0707886bc27e405c79dfcc9eee05ae5c3a041cac
+release-date: Fri, 23 Oct 2026 20:01:40 UTC
+license: debian/* Expat (Ondřej Surý), patches derived from php-src PHP-3.01
