@@ -17,16 +17,17 @@ Security-patched Docker images for end-of-life PHP: **PHP branches 7.0 → 8.1 w
 | Branch | Status | Base images (historic → current) | Patch series |
 | --- | --- | --- | --- |
 | 7.2 | built, tested | buster, stretch, alpine3.12, alpine3.11 → trixie, bookworm, alpine3.24, alpine3.23 | [patches/7.2](patches/7.2) |
+| 7.3 | built, tested | bullseye, buster, alpine3.15, alpine3.14 → trixie, bookworm, alpine3.24, alpine3.23 | [patches/7.3](patches/7.3) |
 | 7.4 | built, tested | bullseye, buster, alpine3.16, alpine3.15 → trixie, bookworm, alpine3.24, alpine3.23 | [patches/7.4](patches/7.4) |
 | 8.0 | built, tested | bullseye, buster, alpine3.16 → trixie, bookworm, alpine3.24, alpine3.23 | [patches/8.0](patches/8.0) |
 | 8.1 | built, tested | trixie, bookworm, alpine3.22, alpine3.21 → trixie, bookworm, alpine3.24, alpine3.23 | [patches/8.1](patches/8.1) |
-| 7.0, 7.1, 7.3 | planned | | |
+| 7.0, 7.1 | planned | | |
 
 Each branch is built on the base images docker-library last published it on (same tags as Docker Hub, so
 `FROM php:7.2-fpm-alpine3.12` → `FROM ghcr.io/itmg-consulting/mammoth-lts:7.2-fpm-alpine3.12` is a drop-in change; **those OS releases are
 EOL themselves**, Debian ones install from archive.debian.org) and on the currently supported ones, which we recommend.
 Suite-less and `-alpine` aliases keep their Docker Hub meaning (`7.2-fpm` = buster, `7.2-fpm-alpine` = alpine3.12,
-`7.4-fpm` / `8.0-fpm` = bullseye, `7.4-fpm-alpine` / `8.0-fpm-alpine` = alpine3.16, `8.1-fpm` = trixie,
+`7.3-fpm` / `7.4-fpm` / `8.0-fpm` = bullseye, `7.3-fpm-alpine` = alpine3.15, `7.4-fpm-alpine` / `8.0-fpm-alpine` = alpine3.16, `8.1-fpm` = trixie,
 `8.1-fpm-alpine` = alpine3.22).
 
 A branch is generated once `patches/<version>/series` exists (`versions.sh`). Supported branches (8.2+) are not
@@ -78,11 +79,34 @@ and source, and gives the reason for every advisory not fixed.
   | bookworm | 3.0 (no backport) | exposed |
   | bullseye, buster, stretch, alpine3.16, alpine3.15, alpine3.12, alpine3.11 | 1.1 | exposed |
 
-  The default tags (`7.2-fpm`, `7.2-fpm-alpine`, `7.4-fpm`, `7.4-fpm-alpine`, `8.0-fpm`, `8.0-fpm-alpine`) are exposed. Only applications that decrypt
+  The default tags (`7.2-fpm`, `7.2-fpm-alpine`, `7.3-fpm`, `7.3-fpm-alpine`, `7.4-fpm`, `7.4-fpm-alpine`, `8.0-fpm`, `8.0-fpm-alpine`) are exposed. Only applications that decrypt
   with an RSA private key are concerned: `openssl_private_decrypt()` (its default padding is PKCS#1 v1.5) and
   `openssl_open()`. The attacker must also be able to submit many ciphertexts and time the responses. TLS is not
   affected (PHP does not decrypt RSA as a TLS client; the web server handles TLS). If your application decrypts RSA,
   use a trixie or alpine3.23 / 3.24 image, or switch to OAEP padding (`OPENSSL_PKCS1_OAEP_PADDING`).
+
+### PHP 7.3 (`7.3.33-p1`)
+
+| | Advisories |
+| --- | --- |
+| Published by php-src since 7.3.33 (November 2021) | **66** |
+| Fixed by the deb.sury.org series | 33 |
+| Fixed by our own backports (`patches/7.3/9001`–`9020`) | 20 |
+| Not affecting 7.3 | 12 |
+| Not fixed | 1 |
+| Not triaged yet | **0** |
+
+- **deb.sury.org** stopped backporting to 7.3 earlier than to 7.4: the HTTP stream wrapper, SOAP, OpenSSL hostname,
+  pgsql, mysqlnd, phar, FastCGI and filter fixes of 2025-2026 are missing from its 7.3 series.
+- **Our backports**: deb.sury.org's own 7.4 backports of those fixes, applied to 7.3 (most as-is; the HTTP header
+  parser, the credential stripping on cross-origin redirects, pgsql, mysqlnd and SOAP adapted to the 7.3 code, see the
+  header of each patch), plus our 7.2 backport of the pdo_firebird NUL quoting (GHSA-w476-322c-wpvm). The patches
+  name their php-src commit.
+- **Fix of a deb.sury.org backport**: patch 9022, the same mysqlnd double free as 7.4 (9003).
+- **Not affecting 7.3**: code added in 7.4 to 8.4 (`??=`, the FPM log flush command, libxml's Content-Type charset,
+  mbstring, DOM C14N, bcmath rewrite, TLS peer name reset), and Windows-only issues.
+- **Not fixed**: the Marvin attack, as for 7.2 (bullseye, buster and alpine3.14 / 3.15 ship OpenSSL 1.1: exposed).
+- Also php-src 67259e45 (GH-14834, PEAR with libxml2 ≥ 2.13), as for the other branches.
 
 ### PHP 7.4 (`7.4.33-p4`)
 
@@ -153,7 +177,7 @@ and source, and gives the reason for every advisory not fixed.
 
 All Alpine images also get php-src 577b8ae422 (GH-11678, merged upstream in 8.2): on musl, PHP declared the
 `fopencookie()` seek callback with the wrong signature (a position instead of a pointer to it), so a seek on a PHP
-stream used as a C `FILE*` could go to a bogus offset. 7.2 had it on every Alpine image (its configure check looks for a
+stream used as a C `FILE*` could go to a bogus offset. 7.2 and 7.3 had it on every Alpine image (their configure check looks for a
 glibc-only type), 7.4 and 8.0 on alpine3.23 / 3.24 (musl ≥ 1.2.4 dropped `off64_t`); 8.1 did not build there without it.
 
 Outside this tracking:
@@ -162,7 +186,7 @@ Outside this tracking:
   OpenSSL, libxml2, curl, etc. no longer get fixes; only PHP itself is patched. Prefer the current suites, which pick
   up their distribution's updates on every weekly rebuild.
 - **PHP bugs fixed upstream without a security advisory**, and PECL extensions you install yourself.
-- **Known 7.2 / 7.4 issue with no advisory**: `pdo_firebird` copies a `:name` parameter longer than 71 characters from the
+- **Known 7.2 / 7.3 / 7.4 issue with no advisory**: `pdo_firebird` copies a `:name` parameter longer than 71 characters from the
   SQL text into a fixed stack buffer. The SQL text alone can crash the process this way. Not fixed yet.
 
 ## Images
@@ -215,7 +239,7 @@ Only the source step differs from upstream:
 PHP 7 and 8.0 also get the compiler flags deb.sury.org uses for these versions on current toolchains (gcc 14/15, ICU 75+).
 
 On the current base images (alpine3.23 / 3.24, bookworm, trixie), PHP is built against the system PCRE library, as
-deb.sury.org does, instead of the copy bundled with php-src (PCRE 8.41 in 7.2, PCRE2 10.35 in 7.4 and 8.0, 10.39 in 8.1), which no longer
+deb.sury.org does, instead of the copy bundled with php-src (PCRE 8.41 in 7.2, PCRE2 10.32 in 7.3, 10.35 in 7.4 and 8.0, 10.39 in 8.1), which no longer
 gets fixes once the branch is EOL: the distribution maintains it. PHP 7.2 on trixie keeps the bundled copy (Debian
 dropped PCRE1), and the historic suites keep it too, like the Docker Hub images. The PCRE headers are then part of
 `PHPIZE_DEPS`, since the installed PHP headers include them.

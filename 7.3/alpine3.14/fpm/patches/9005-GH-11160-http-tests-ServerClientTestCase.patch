@@ -1,0 +1,509 @@
+Origin: deb.sury.org php7.4 7.4.33-31 0111 (its backport of php-src 7c0dfc5cf58d3c445b935fa14ea8f5f13568c419, GH-11160, carries this test fix-up)
+Imported-by: test infrastructure part only (the GH-11160 libxml2 >= 2.11 message changes are not applied to 7.3)
+
+From: Niels Dossche <7771979+nielsdos@users.noreply.github.com>
+Date: Sat, 29 Apr 2023 21:07:50 +0200
+Subject: Fix GH-11160: Few tests failed building with new libxml 2.11.0
+
+It's possible to categorise the failures into 2 categories:
+  - Changed error message. In this case we either duplicate the test and
+    modify the error message. Or if the change in error message is
+    small, we use the EXPECTF matchers to make the test compatible with both
+    old and new versions of libxml2.
+  - Missing warnings. This is caused by a change in libxml2 where the
+    parser started using SAX APIs internally [1]. In this case the
+    error_type passed to php_libxml_internal_error_handler() changed from
+    PHP_LIBXML_ERROR to PHP_LIBXML_CTX_WARNING because it internally
+    started to use the SAX handlers instead of the generic handlers.
+    However, for the SAX handlers the current input stack is empty, so
+    nothing is actually printed. I fixed this by falling back to a
+    regular warning without a filename & line number reference, which
+    mimicks the old behaviour. Furthermore, this change now also shows
+    an additional warning in a test which was previously hidden.
+
+[1] https://gitlab.gnome.org/GNOME/libxml2/-/commit/9a82b94a94bd310db426edd453b0f38c6c8f69f5
+
+Closes GH-11162.
+
+(cherry picked from commit 7c0dfc5cf58d3c445b935fa14ea8f5f13568c419)
+(cherry picked from commit 78ae0886bd1a3e42c53c9ba65764b6e6357640b5)
+
+Only the test infrastructure of the deb.sury.org php7.4 patch is kept: the patches 9001-9004 (Sury 0107-0110)
+switched ext/openssl/tests/ServerClientTestCase.inc to ephemeral ports, which the openssl tests written for fixed
+ports do not support ("Failed server start"); the http tests now use their own ServerClientTestCase.inc and the
+openssl one is restored. The libxml part of GH-11160 (libxml2 >= 2.11 error messages) is not a security fix.
+---
+diff --git a/ext/openssl/tests/ServerClientTestCase.inc b/ext/openssl/tests/ServerClientTestCase.inc
+index c74da4441028e51c4921a683497051503677f3d4..753366df6f4bec66fc8dc34f6b08a271d7b9ccaa 100644
+--- a/ext/openssl/tests/ServerClientTestCase.inc
++++ b/ext/openssl/tests/ServerClientTestCase.inc
+@@ -4,19 +4,14 @@ const WORKER_ARGV_VALUE = 'RUN_WORKER';
+ 
+ const WORKER_DEFAULT_NAME = 'server';
+ 
+-function phpt_notify(string $worker = WORKER_DEFAULT_NAME, string $message = ""): void
++function phpt_notify($worker = WORKER_DEFAULT_NAME)
+ {
+-    ServerClientTestCase::getInstance()->notify($worker, $message);
++    ServerClientTestCase::getInstance()->notify($worker);
+ }
+ 
+-function phpt_wait($worker = WORKER_DEFAULT_NAME, $timeout = null): ?string
++function phpt_wait($worker = WORKER_DEFAULT_NAME, $timeout = null)
+ {
+-    return ServerClientTestCase::getInstance()->wait($worker, $timeout);
+-}
+-
+-function phpt_notify_server_start($server): void
+-{
+-    ServerClientTestCase::getInstance()->notify_server_start($server);
++    ServerClientTestCase::getInstance()->wait($worker, $timeout);
+ }
+ 
+ function phpt_has_sslv3() {
+@@ -124,73 +119,43 @@ class ServerClientTestCase
+         eval($code);
+     }
+ 
+-    /**
+-     * Run client and all workers
+-     *
+-     * @param string       $clientCode The client PHP code
+-     * @param string|array $workerCode
+-     * @param bool         $ephemeral Select whether automatic port selection and automatic awaiting is used
+-     * @return void
+-     * @throws Exception
+-     */
+-    public function run(string $clientCode, $workerCode, bool $ephemeral = true): void
++    public function run($masterCode, $workerCode)
+     {
+         if (!is_array($workerCode)) {
+             $workerCode = [WORKER_DEFAULT_NAME => $workerCode];
+         }
+-        reset($workerCode);
+-        $code = current($workerCode);
+-        $worker = key($workerCode);
+-        while ($worker != null) {
++        foreach ($workerCode as $worker => $code) {
+             $this->spawnWorkerProcess($worker, $this->stripPhpTagsFromCode($code));
+-            $code = next($workerCode);
+-            if ($ephemeral) {
+-                $addr = trim($this->wait($worker));
+-                if (empty($addr)) {
+-                    throw new \Exception("Failed server start");
+-                }
+-                if ($code === false) {
+-                    $clientCode = preg_replace('/{{\s*ADDR\s*}}/', $addr, $clientCode);
+-                } else {
+-                    $code = preg_replace('/{{\s*ADDR\s*}}/', $addr, $code);
+-                }
+-            }
+-            $worker = key($workerCode);
+         }
+-
+-        eval($this->stripPhpTagsFromCode($clientCode));
++        eval($this->stripPhpTagsFromCode($masterCode));
+         foreach ($workerCode as $worker => $code) {
+             $this->cleanupWorkerProcess($worker);
+         }
+     }
+ 
+-    public function wait($worker, $timeout = null): ?string
++    public function wait($worker, $timeout = null)
+     {
+         $handle = $this->isWorker ? STDIN : $this->workerStdOut[$worker];
+         if ($timeout === null) {
+-            return fgets($handle);
++            fgets($handle);
++            return true;
+         }
+ 
+         stream_set_blocking($handle, false);
+         $read = [$handle];
+         $result = stream_select($read, $write, $except, $timeout);
+         if (!$result) {
+-            return null;
++            return false;
+         }
+ 
+-        $result = fgets($handle);
++        fgets($handle);
+         stream_set_blocking($handle, true);
+-        return $result;
+-    }
+-
+-    public function notify(string $worker, string $message = ""): void
+-    {
+-        fwrite($this->isWorker ? STDOUT : $this->workerStdIn[$worker], "$message\n");
++        return true;
+     }
+ 
+-    public function notify_server_start($server): void
++    public function notify($worker)
+     {
+-        echo stream_socket_get_name($server, false) . "\n";
++        fwrite($this->isWorker ? STDOUT : $this->workerStdIn[$worker], "\n");
+     }
+ }
+ 
+diff --git a/ext/standard/tests/http/ServerClientTestCase.inc b/ext/standard/tests/http/ServerClientTestCase.inc
+new file mode 100644
+index 0000000000000000000000000000000000000000..c74da4441028e51c4921a683497051503677f3d4
+--- /dev/null
++++ b/ext/standard/tests/http/ServerClientTestCase.inc
+@@ -0,0 +1,199 @@
++<?php
++
++const WORKER_ARGV_VALUE = 'RUN_WORKER';
++
++const WORKER_DEFAULT_NAME = 'server';
++
++function phpt_notify(string $worker = WORKER_DEFAULT_NAME, string $message = ""): void
++{
++    ServerClientTestCase::getInstance()->notify($worker, $message);
++}
++
++function phpt_wait($worker = WORKER_DEFAULT_NAME, $timeout = null): ?string
++{
++    return ServerClientTestCase::getInstance()->wait($worker, $timeout);
++}
++
++function phpt_notify_server_start($server): void
++{
++    ServerClientTestCase::getInstance()->notify_server_start($server);
++}
++
++function phpt_has_sslv3() {
++    static $result = null;
++    if (!is_null($result)) {
++        return $result;
++    }
++    $server = @stream_socket_server('sslv3://127.0.0.1:10013');
++    if ($result = !!$server) {
++        fclose($server);
++    }
++    return $result;
++}
++
++/**
++ * This is a singleton to let the wait/notify functions work
++ * I know it's horrible, but it's a means to an end
++ */
++class ServerClientTestCase
++{
++    private $isWorker = false;
++
++    private $workerHandle = [];
++
++    private $workerStdIn = [];
++
++    private $workerStdOut = [];
++
++    private static $instance;
++
++    public static function getInstance($isWorker = false)
++    {
++        if (!isset(self::$instance)) {
++            self::$instance = new self($isWorker);
++        }
++
++        return self::$instance;
++    }
++
++    public function __construct($isWorker = false)
++    {
++        if (!isset(self::$instance)) {
++            self::$instance = $this;
++        }
++
++        $this->isWorker = $isWorker;
++    }
++
++    private function spawnWorkerProcess($worker, $code)
++    {
++        if (defined("PHP_WINDOWS_VERSION_MAJOR")) {
++            $ini = php_ini_loaded_file();
++            $cmd = sprintf(
++                '%s %s "%s" %s',
++                PHP_BINARY, $ini ? "-n -c $ini" : "",
++                __FILE__,
++                WORKER_ARGV_VALUE
++            );
++        } else {
++            $cmd = sprintf(
++                '%s "%s" %s %s',
++                PHP_BINARY,
++                __FILE__,
++                WORKER_ARGV_VALUE,
++                $worker
++            );
++        }
++        $this->workerHandle[$worker] = proc_open(
++            $cmd,
++            [['pipe', 'r'], ['pipe', 'w'], STDERR],
++            $pipes
++        );
++        $this->workerStdIn[$worker] = $pipes[0];
++        $this->workerStdOut[$worker] = $pipes[1];
++
++        fwrite($this->workerStdIn[$worker], $code . "\n---\n");
++    }
++
++    private function cleanupWorkerProcess($worker)
++    {
++        fclose($this->workerStdIn[$worker]);
++        fclose($this->workerStdOut[$worker]);
++        proc_close($this->workerHandle[$worker]);
++    }
++
++    private function stripPhpTagsFromCode($code)
++    {
++        return preg_replace('/^\s*<\?(?:php)?|\?>\s*$/i', '', $code);
++    }
++
++    public function runWorker()
++    {
++        $code = '';
++
++        while (1) {
++            $line = fgets(STDIN);
++
++            if (trim($line) === "---") {
++                break;
++            }
++
++            $code .= $line;
++        }
++
++        eval($code);
++    }
++
++    /**
++     * Run client and all workers
++     *
++     * @param string       $clientCode The client PHP code
++     * @param string|array $workerCode
++     * @param bool         $ephemeral Select whether automatic port selection and automatic awaiting is used
++     * @return void
++     * @throws Exception
++     */
++    public function run(string $clientCode, $workerCode, bool $ephemeral = true): void
++    {
++        if (!is_array($workerCode)) {
++            $workerCode = [WORKER_DEFAULT_NAME => $workerCode];
++        }
++        reset($workerCode);
++        $code = current($workerCode);
++        $worker = key($workerCode);
++        while ($worker != null) {
++            $this->spawnWorkerProcess($worker, $this->stripPhpTagsFromCode($code));
++            $code = next($workerCode);
++            if ($ephemeral) {
++                $addr = trim($this->wait($worker));
++                if (empty($addr)) {
++                    throw new \Exception("Failed server start");
++                }
++                if ($code === false) {
++                    $clientCode = preg_replace('/{{\s*ADDR\s*}}/', $addr, $clientCode);
++                } else {
++                    $code = preg_replace('/{{\s*ADDR\s*}}/', $addr, $code);
++                }
++            }
++            $worker = key($workerCode);
++        }
++
++        eval($this->stripPhpTagsFromCode($clientCode));
++        foreach ($workerCode as $worker => $code) {
++            $this->cleanupWorkerProcess($worker);
++        }
++    }
++
++    public function wait($worker, $timeout = null): ?string
++    {
++        $handle = $this->isWorker ? STDIN : $this->workerStdOut[$worker];
++        if ($timeout === null) {
++            return fgets($handle);
++        }
++
++        stream_set_blocking($handle, false);
++        $read = [$handle];
++        $result = stream_select($read, $write, $except, $timeout);
++        if (!$result) {
++            return null;
++        }
++
++        $result = fgets($handle);
++        stream_set_blocking($handle, true);
++        return $result;
++    }
++
++    public function notify(string $worker, string $message = ""): void
++    {
++        fwrite($this->isWorker ? STDOUT : $this->workerStdIn[$worker], "$message\n");
++    }
++
++    public function notify_server_start($server): void
++    {
++        echo stream_socket_get_name($server, false) . "\n";
++    }
++}
++
++if (isset($argv[1]) && $argv[1] === WORKER_ARGV_VALUE) {
++    ServerClientTestCase::getInstance(true)->runWorker();
++}
+diff --git a/ext/standard/tests/http/ghsa-52jp-hrpf-2jff-001.phpt b/ext/standard/tests/http/ghsa-52jp-hrpf-2jff-001.phpt
+index 46d77ec4aff4e9374ba04a2dff4208742541eacb..3475a03beed93564d26d391e2b2fc1694d5e72fd 100644
+--- a/ext/standard/tests/http/ghsa-52jp-hrpf-2jff-001.phpt
++++ b/ext/standard/tests/http/ghsa-52jp-hrpf-2jff-001.phpt
+@@ -39,7 +39,7 @@ $clientCode = <<<'CODE'
+  var_dump($http_response_header);
+ CODE;
+ 
+-include sprintf("%s/../../../openssl/tests/ServerClientTestCase.inc", __DIR__);
++include sprintf("%s/ServerClientTestCase.inc", __DIR__);
+ ServerClientTestCase::getInstance()->run($clientCode, $serverCode);
+ ?>
+ --EXPECTF--
+diff --git a/ext/standard/tests/http/ghsa-52jp-hrpf-2jff-002.phpt b/ext/standard/tests/http/ghsa-52jp-hrpf-2jff-002.phpt
+index d25c89d06e51f78f6e52a9e7171b56128e74c44a..706a85f410b0a567b95438da2352775868c5d3b9 100644
+--- a/ext/standard/tests/http/ghsa-52jp-hrpf-2jff-002.phpt
++++ b/ext/standard/tests/http/ghsa-52jp-hrpf-2jff-002.phpt
+@@ -39,7 +39,7 @@ $clientCode = <<<'CODE'
+  var_dump($http_response_header);
+ CODE;
+ 
+-include sprintf("%s/../../../openssl/tests/ServerClientTestCase.inc", __DIR__);
++include sprintf("%s/ServerClientTestCase.inc", __DIR__);
+ ServerClientTestCase::getInstance()->run($clientCode, $serverCode);
+ ?>
+ --EXPECTF--
+diff --git a/ext/standard/tests/http/ghsa-hgf5-96fm-v528-001.phpt b/ext/standard/tests/http/ghsa-hgf5-96fm-v528-001.phpt
+index c8dcd47a4a4f0407626534121797a98295d4a67c..121f077c9f5a79b3f65b50c0d887c1ea2404a365 100644
+--- a/ext/standard/tests/http/ghsa-hgf5-96fm-v528-001.phpt
++++ b/ext/standard/tests/http/ghsa-hgf5-96fm-v528-001.phpt
+@@ -36,7 +36,7 @@ $clientCode = <<<'CODE'
+     var_dump($http_response_header);
+ CODE;
+ 
+-include sprintf("%s/../../../openssl/tests/ServerClientTestCase.inc", __DIR__);
++include sprintf("%s/ServerClientTestCase.inc", __DIR__);
+ ServerClientTestCase::getInstance()->run($clientCode, $serverCode);
+ ?>
+ --EXPECTF--
+diff --git a/ext/standard/tests/http/ghsa-hgf5-96fm-v528-002.phpt b/ext/standard/tests/http/ghsa-hgf5-96fm-v528-002.phpt
+index ca8f75f032728afce1ccaf7fe35d370fa91de2c4..0d141f93af3f467dd4d92d6d9e966857d7d1bdb3 100644
+--- a/ext/standard/tests/http/ghsa-hgf5-96fm-v528-002.phpt
++++ b/ext/standard/tests/http/ghsa-hgf5-96fm-v528-002.phpt
+@@ -36,7 +36,7 @@ $clientCode = <<<'CODE'
+     var_dump($http_response_header);
+ CODE;
+ 
+-include sprintf("%s/../../../openssl/tests/ServerClientTestCase.inc", __DIR__);
++include sprintf("%s/ServerClientTestCase.inc", __DIR__);
+ ServerClientTestCase::getInstance()->run($clientCode, $serverCode);
+ ?>
+ --EXPECTF--
+diff --git a/ext/standard/tests/http/ghsa-hgf5-96fm-v528-003.phpt b/ext/standard/tests/http/ghsa-hgf5-96fm-v528-003.phpt
+index 4cfbc7ee8046567fb348f70f43a003f5e3b41d03..8041487d044b42d668a14b44d29a15c7988ac6d8 100644
+--- a/ext/standard/tests/http/ghsa-hgf5-96fm-v528-003.phpt
++++ b/ext/standard/tests/http/ghsa-hgf5-96fm-v528-003.phpt
+@@ -36,7 +36,7 @@ $clientCode = <<<'CODE'
+     var_dump($http_response_header);
+ CODE;
+ 
+-include sprintf("%s/../../../openssl/tests/ServerClientTestCase.inc", __DIR__);
++include sprintf("%s/ServerClientTestCase.inc", __DIR__);
+ ServerClientTestCase::getInstance()->run($clientCode, $serverCode);
+ ?>
+ --EXPECTF--
+diff --git a/ext/standard/tests/http/ghsa-pcmh-g36c-qc44-001.phpt b/ext/standard/tests/http/ghsa-pcmh-g36c-qc44-001.phpt
+index 53baa1c92d697aed331e12a7f04ff7d953d44a55..f491acfae27af10cdcc7c7f90bedcc29f3a767b4 100644
+--- a/ext/standard/tests/http/ghsa-pcmh-g36c-qc44-001.phpt
++++ b/ext/standard/tests/http/ghsa-pcmh-g36c-qc44-001.phpt
+@@ -35,7 +35,7 @@ $clientCode = <<<'CODE'
+     var_dump($http_response_header);
+ CODE;
+ 
+-include sprintf("%s/../../../openssl/tests/ServerClientTestCase.inc", __DIR__);
++include sprintf("%s/ServerClientTestCase.inc", __DIR__);
+ ServerClientTestCase::getInstance()->run($clientCode, $serverCode);
+ ?>
+ --EXPECTF--
+diff --git a/ext/standard/tests/http/ghsa-pcmh-g36c-qc44-002.phpt b/ext/standard/tests/http/ghsa-pcmh-g36c-qc44-002.phpt
+index 5aa0ee00618daecd918e0625c1b3078e10e6f9be..4320b17b97d4e7489511244665617f67f10c25da 100644
+--- a/ext/standard/tests/http/ghsa-pcmh-g36c-qc44-002.phpt
++++ b/ext/standard/tests/http/ghsa-pcmh-g36c-qc44-002.phpt
+@@ -35,7 +35,7 @@ $clientCode = <<<'CODE'
+     var_dump($http_response_header);
+ CODE;
+ 
+-include sprintf("%s/../../../openssl/tests/ServerClientTestCase.inc", __DIR__);
++include sprintf("%s/ServerClientTestCase.inc", __DIR__);
+ ServerClientTestCase::getInstance()->run($clientCode, $serverCode);
+ ?>
+ --EXPECTF--
+diff --git a/ext/standard/tests/http/ghsa-v8xr-gpvj-cx9g-001.phpt b/ext/standard/tests/http/ghsa-v8xr-gpvj-cx9g-001.phpt
+index 64904bfcd1d1bc8ae61130ad018bef2371ff237c..3f1cc79bd9c320dea7f6d4927bd2125aed9c22cf 100644
+--- a/ext/standard/tests/http/ghsa-v8xr-gpvj-cx9g-001.phpt
++++ b/ext/standard/tests/http/ghsa-v8xr-gpvj-cx9g-001.phpt
+@@ -35,7 +35,7 @@ $clientCode = <<<'CODE'
+     var_dump($http_response_header);
+ CODE;
+ 
+-include sprintf("%s/../../../openssl/tests/ServerClientTestCase.inc", __DIR__);
++include sprintf("%s/ServerClientTestCase.inc", __DIR__);
+ ServerClientTestCase::getInstance()->run($clientCode, $serverCode);
+ ?>
+ --EXPECTF--
+diff --git a/ext/standard/tests/http/ghsa-v8xr-gpvj-cx9g-002.phpt b/ext/standard/tests/http/ghsa-v8xr-gpvj-cx9g-002.phpt
+index a6d9d00fd58add34ab39745a710c09eabc3d60e7..c7c13877fefa2cd58e5a697da5e17cf9725a98ad 100644
+--- a/ext/standard/tests/http/ghsa-v8xr-gpvj-cx9g-002.phpt
++++ b/ext/standard/tests/http/ghsa-v8xr-gpvj-cx9g-002.phpt
+@@ -35,7 +35,7 @@ $clientCode = <<<'CODE'
+     var_dump($http_response_header);
+ CODE;
+ 
+-include sprintf("%s/../../../openssl/tests/ServerClientTestCase.inc", __DIR__);
++include sprintf("%s/ServerClientTestCase.inc", __DIR__);
+ ServerClientTestCase::getInstance()->run($clientCode, $serverCode);
+ ?>
+ --EXPECTF--
+diff --git a/ext/standard/tests/http/ghsa-v8xr-gpvj-cx9g-003.phpt b/ext/standard/tests/http/ghsa-v8xr-gpvj-cx9g-003.phpt
+index 4eff7fc63f399de986dadbb1d3a025a45d94ab7b..c67663b65f7983192285ed6327d61520edee0868 100644
+--- a/ext/standard/tests/http/ghsa-v8xr-gpvj-cx9g-003.phpt
++++ b/ext/standard/tests/http/ghsa-v8xr-gpvj-cx9g-003.phpt
+@@ -35,7 +35,7 @@ $clientCode = <<<'CODE'
+     var_dump($http_response_header);
+ CODE;
+ 
+-include sprintf("%s/../../../openssl/tests/ServerClientTestCase.inc", __DIR__);
++include sprintf("%s/ServerClientTestCase.inc", __DIR__);
+ ServerClientTestCase::getInstance()->run($clientCode, $serverCode);
+ ?>
+ --EXPECTF--
+diff --git a/ext/standard/tests/http/ghsa-v8xr-gpvj-cx9g-004.phpt b/ext/standard/tests/http/ghsa-v8xr-gpvj-cx9g-004.phpt
+index 71aed2fa2e83d3952f0a1cf1d75cb2165cf5b3ff..7a59e2688fd51c22097a6df387b13d06b5fab030 100644
+--- a/ext/standard/tests/http/ghsa-v8xr-gpvj-cx9g-004.phpt
++++ b/ext/standard/tests/http/ghsa-v8xr-gpvj-cx9g-004.phpt
+@@ -35,7 +35,7 @@ $clientCode = <<<'CODE'
+     var_dump($http_response_header);
+ CODE;
+ 
+-include sprintf("%s/../../../openssl/tests/ServerClientTestCase.inc", __DIR__);
++include sprintf("%s/ServerClientTestCase.inc", __DIR__);
+ ServerClientTestCase::getInstance()->run($clientCode, $serverCode);
+ ?>
+ --EXPECTF--
+diff --git a/ext/standard/tests/http/ghsa-v8xr-gpvj-cx9g-005.phpt b/ext/standard/tests/http/ghsa-v8xr-gpvj-cx9g-005.phpt
+index 49d845d84b4245970ed2029e9a4b170b194e0550..f097762ef9ec6eb6a63f55e9a03977e57ebcc68c 100644
+--- a/ext/standard/tests/http/ghsa-v8xr-gpvj-cx9g-005.phpt
++++ b/ext/standard/tests/http/ghsa-v8xr-gpvj-cx9g-005.phpt
+@@ -35,7 +35,7 @@ $clientCode = <<<'CODE'
+     var_dump($http_response_header);
+ CODE;
+ 
+-include sprintf("%s/../../../openssl/tests/ServerClientTestCase.inc", __DIR__);
++include sprintf("%s/ServerClientTestCase.inc", __DIR__);
+ ServerClientTestCase::getInstance()->run($clientCode, $serverCode);
+ ?>
+ --EXPECTF--

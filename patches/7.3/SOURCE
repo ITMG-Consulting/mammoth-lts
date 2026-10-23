@@ -1,0 +1,7 @@
+package: php7.3
+version: 7.3.33-35+0~20261021.144+debian13~1.gbpecf76f
+suite: trixie
+debian-tarball: https://packages.sury.org/php/pool/main/p/php7.3/php7.3_7.3.33-35+0~20261021.144+debian13~1.gbpecf76f.debian.tar.xz
+debian-tarball-sha256: 0c65625f2cbd18749891f7a0bba653c7eabe5864155036cac9407508560eb983
+release-date: Fri, 23 Oct 2026 10:01:23 UTC
+license: debian/* Expat (Ondřej Surý), patches derived from php-src PHP-3.01
