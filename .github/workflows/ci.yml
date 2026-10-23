@@ -43,6 +43,7 @@ jobs:
         run: |
           ./apply-templates.sh
           python3 tools/security-report.py
+          tools/readme-tags.sh
           git diff --exit-code
       # pull requests and pushes only build what changed; the weekly / manual runs rebuild everything (base image updates)
       - id: dirs

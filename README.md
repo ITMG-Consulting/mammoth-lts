@@ -205,6 +205,76 @@ Tags follow the official image, plus the patch level of the build:
 
 Images are rebuilt weekly for base image updates: the PHP inside a `-pN` tag never changes.
 
+### Available tags
+
+Per base image and variant: the tag of the current patch level (pins that exact PHP build), then the branch tags,
+which always point to the latest build. Images are `linux/amd64`.
+
+<!-- tags:start (tools/readme-tags.sh) -->
+### 7.2 (`7.2.34-p5`)
+
+| | `cli` | `fpm` | `zts` | `apache` |
+| --- | --- | --- | --- | --- |
+| buster | `7.2.34-p5-cli-buster`<br>`7.2-cli-buster`<br>`7.2-buster`<br>`7.2-cli`<br>`7.2` | `7.2.34-p5-fpm-buster`<br>`7.2-fpm-buster`<br>`7.2-fpm` | `7.2.34-p5-zts-buster`<br>`7.2-zts-buster`<br>`7.2-zts` | `7.2.34-p5-apache-buster`<br>`7.2-apache-buster`<br>`7.2-apache` |
+| stretch | `7.2.34-p5-cli-stretch`<br>`7.2-cli-stretch`<br>`7.2-stretch` | `7.2.34-p5-fpm-stretch`<br>`7.2-fpm-stretch` | `7.2.34-p5-zts-stretch`<br>`7.2-zts-stretch` | `7.2.34-p5-apache-stretch`<br>`7.2-apache-stretch` |
+| alpine3.12 | `7.2.34-p5-cli-alpine3.12`<br>`7.2-cli-alpine3.12`<br>`7.2-alpine3.12`<br>`7.2-cli-alpine`<br>`7.2-alpine` | `7.2.34-p5-fpm-alpine3.12`<br>`7.2-fpm-alpine3.12`<br>`7.2-fpm-alpine` | `7.2.34-p5-zts-alpine3.12`<br>`7.2-zts-alpine3.12`<br>`7.2-zts-alpine` |  |
+| alpine3.11 | `7.2.34-p5-cli-alpine3.11`<br>`7.2-cli-alpine3.11`<br>`7.2-alpine3.11` | `7.2.34-p5-fpm-alpine3.11`<br>`7.2-fpm-alpine3.11` | `7.2.34-p5-zts-alpine3.11`<br>`7.2-zts-alpine3.11` |  |
+| trixie | `7.2.34-p5-cli-trixie`<br>`7.2-cli-trixie`<br>`7.2-trixie` | `7.2.34-p5-fpm-trixie`<br>`7.2-fpm-trixie` | `7.2.34-p5-zts-trixie`<br>`7.2-zts-trixie` | `7.2.34-p5-apache-trixie`<br>`7.2-apache-trixie` |
+| bookworm | `7.2.34-p5-cli-bookworm`<br>`7.2-cli-bookworm`<br>`7.2-bookworm` | `7.2.34-p5-fpm-bookworm`<br>`7.2-fpm-bookworm` | `7.2.34-p5-zts-bookworm`<br>`7.2-zts-bookworm` | `7.2.34-p5-apache-bookworm`<br>`7.2-apache-bookworm` |
+| alpine3.24 | `7.2.34-p5-cli-alpine3.24`<br>`7.2-cli-alpine3.24`<br>`7.2-alpine3.24` | `7.2.34-p5-fpm-alpine3.24`<br>`7.2-fpm-alpine3.24` | `7.2.34-p5-zts-alpine3.24`<br>`7.2-zts-alpine3.24` |  |
+| alpine3.23 | `7.2.34-p5-cli-alpine3.23`<br>`7.2-cli-alpine3.23`<br>`7.2-alpine3.23` | `7.2.34-p5-fpm-alpine3.23`<br>`7.2-fpm-alpine3.23` | `7.2.34-p5-zts-alpine3.23`<br>`7.2-zts-alpine3.23` |  |
+
+### 7.3 (`7.3.33-p1`)
+
+| | `cli` | `fpm` | `zts` | `apache` |
+| --- | --- | --- | --- | --- |
+| bullseye | `7.3.33-p1-cli-bullseye`<br>`7.3-cli-bullseye`<br>`7.3-bullseye`<br>`7.3-cli`<br>`7.3` | `7.3.33-p1-fpm-bullseye`<br>`7.3-fpm-bullseye`<br>`7.3-fpm` | `7.3.33-p1-zts-bullseye`<br>`7.3-zts-bullseye`<br>`7.3-zts` | `7.3.33-p1-apache-bullseye`<br>`7.3-apache-bullseye`<br>`7.3-apache` |
+| buster | `7.3.33-p1-cli-buster`<br>`7.3-cli-buster`<br>`7.3-buster` | `7.3.33-p1-fpm-buster`<br>`7.3-fpm-buster` | `7.3.33-p1-zts-buster`<br>`7.3-zts-buster` | `7.3.33-p1-apache-buster`<br>`7.3-apache-buster` |
+| alpine3.15 | `7.3.33-p1-cli-alpine3.15`<br>`7.3-cli-alpine3.15`<br>`7.3-alpine3.15`<br>`7.3-cli-alpine`<br>`7.3-alpine` | `7.3.33-p1-fpm-alpine3.15`<br>`7.3-fpm-alpine3.15`<br>`7.3-fpm-alpine` | `7.3.33-p1-zts-alpine3.15`<br>`7.3-zts-alpine3.15`<br>`7.3-zts-alpine` |  |
+| alpine3.14 | `7.3.33-p1-cli-alpine3.14`<br>`7.3-cli-alpine3.14`<br>`7.3-alpine3.14` | `7.3.33-p1-fpm-alpine3.14`<br>`7.3-fpm-alpine3.14` | `7.3.33-p1-zts-alpine3.14`<br>`7.3-zts-alpine3.14` |  |
+| trixie | `7.3.33-p1-cli-trixie`<br>`7.3-cli-trixie`<br>`7.3-trixie` | `7.3.33-p1-fpm-trixie`<br>`7.3-fpm-trixie` | `7.3.33-p1-zts-trixie`<br>`7.3-zts-trixie` | `7.3.33-p1-apache-trixie`<br>`7.3-apache-trixie` |
+| bookworm | `7.3.33-p1-cli-bookworm`<br>`7.3-cli-bookworm`<br>`7.3-bookworm` | `7.3.33-p1-fpm-bookworm`<br>`7.3-fpm-bookworm` | `7.3.33-p1-zts-bookworm`<br>`7.3-zts-bookworm` | `7.3.33-p1-apache-bookworm`<br>`7.3-apache-bookworm` |
+| alpine3.24 | `7.3.33-p1-cli-alpine3.24`<br>`7.3-cli-alpine3.24`<br>`7.3-alpine3.24` | `7.3.33-p1-fpm-alpine3.24`<br>`7.3-fpm-alpine3.24` | `7.3.33-p1-zts-alpine3.24`<br>`7.3-zts-alpine3.24` |  |
+| alpine3.23 | `7.3.33-p1-cli-alpine3.23`<br>`7.3-cli-alpine3.23`<br>`7.3-alpine3.23` | `7.3.33-p1-fpm-alpine3.23`<br>`7.3-fpm-alpine3.23` | `7.3.33-p1-zts-alpine3.23`<br>`7.3-zts-alpine3.23` |  |
+
+### 7.4 (`7.4.33-p4`)
+
+| | `cli` | `fpm` | `zts` | `apache` |
+| --- | --- | --- | --- | --- |
+| bullseye | `7.4.33-p4-cli-bullseye`<br>`7.4-cli-bullseye`<br>`7.4-bullseye`<br>`7.4-cli`<br>`7.4` | `7.4.33-p4-fpm-bullseye`<br>`7.4-fpm-bullseye`<br>`7.4-fpm` | `7.4.33-p4-zts-bullseye`<br>`7.4-zts-bullseye`<br>`7.4-zts` | `7.4.33-p4-apache-bullseye`<br>`7.4-apache-bullseye`<br>`7.4-apache` |
+| buster | `7.4.33-p4-cli-buster`<br>`7.4-cli-buster`<br>`7.4-buster` | `7.4.33-p4-fpm-buster`<br>`7.4-fpm-buster` | `7.4.33-p4-zts-buster`<br>`7.4-zts-buster` | `7.4.33-p4-apache-buster`<br>`7.4-apache-buster` |
+| alpine3.16 | `7.4.33-p4-cli-alpine3.16`<br>`7.4-cli-alpine3.16`<br>`7.4-alpine3.16`<br>`7.4-cli-alpine`<br>`7.4-alpine` | `7.4.33-p4-fpm-alpine3.16`<br>`7.4-fpm-alpine3.16`<br>`7.4-fpm-alpine` | `7.4.33-p4-zts-alpine3.16`<br>`7.4-zts-alpine3.16`<br>`7.4-zts-alpine` |  |
+| alpine3.15 | `7.4.33-p4-cli-alpine3.15`<br>`7.4-cli-alpine3.15`<br>`7.4-alpine3.15` | `7.4.33-p4-fpm-alpine3.15`<br>`7.4-fpm-alpine3.15` | `7.4.33-p4-zts-alpine3.15`<br>`7.4-zts-alpine3.15` |  |
+| trixie | `7.4.33-p4-cli-trixie`<br>`7.4-cli-trixie`<br>`7.4-trixie` | `7.4.33-p4-fpm-trixie`<br>`7.4-fpm-trixie` | `7.4.33-p4-zts-trixie`<br>`7.4-zts-trixie` | `7.4.33-p4-apache-trixie`<br>`7.4-apache-trixie` |
+| bookworm | `7.4.33-p4-cli-bookworm`<br>`7.4-cli-bookworm`<br>`7.4-bookworm` | `7.4.33-p4-fpm-bookworm`<br>`7.4-fpm-bookworm` | `7.4.33-p4-zts-bookworm`<br>`7.4-zts-bookworm` | `7.4.33-p4-apache-bookworm`<br>`7.4-apache-bookworm` |
+| alpine3.24 | `7.4.33-p4-cli-alpine3.24`<br>`7.4-cli-alpine3.24`<br>`7.4-alpine3.24` | `7.4.33-p4-fpm-alpine3.24`<br>`7.4-fpm-alpine3.24` | `7.4.33-p4-zts-alpine3.24`<br>`7.4-zts-alpine3.24` |  |
+| alpine3.23 | `7.4.33-p4-cli-alpine3.23`<br>`7.4-cli-alpine3.23`<br>`7.4-alpine3.23` | `7.4.33-p4-fpm-alpine3.23`<br>`7.4-fpm-alpine3.23` | `7.4.33-p4-zts-alpine3.23`<br>`7.4-zts-alpine3.23` |  |
+
+### 8.0 (`8.0.30-p2`)
+
+| | `cli` | `fpm` | `zts` | `apache` |
+| --- | --- | --- | --- | --- |
+| bullseye | `8.0.30-p2-cli-bullseye`<br>`8.0-cli-bullseye`<br>`8.0-bullseye`<br>`8.0-cli`<br>`8.0` | `8.0.30-p2-fpm-bullseye`<br>`8.0-fpm-bullseye`<br>`8.0-fpm` | `8.0.30-p2-zts-bullseye`<br>`8.0-zts-bullseye`<br>`8.0-zts` | `8.0.30-p2-apache-bullseye`<br>`8.0-apache-bullseye`<br>`8.0-apache` |
+| buster | `8.0.30-p2-cli-buster`<br>`8.0-cli-buster`<br>`8.0-buster` | `8.0.30-p2-fpm-buster`<br>`8.0-fpm-buster` | `8.0.30-p2-zts-buster`<br>`8.0-zts-buster` | `8.0.30-p2-apache-buster`<br>`8.0-apache-buster` |
+| alpine3.16 | `8.0.30-p2-cli-alpine3.16`<br>`8.0-cli-alpine3.16`<br>`8.0-alpine3.16`<br>`8.0-cli-alpine`<br>`8.0-alpine` | `8.0.30-p2-fpm-alpine3.16`<br>`8.0-fpm-alpine3.16`<br>`8.0-fpm-alpine` | `8.0.30-p2-zts-alpine3.16`<br>`8.0-zts-alpine3.16`<br>`8.0-zts-alpine` |  |
+| trixie | `8.0.30-p2-cli-trixie`<br>`8.0-cli-trixie`<br>`8.0-trixie` | `8.0.30-p2-fpm-trixie`<br>`8.0-fpm-trixie` | `8.0.30-p2-zts-trixie`<br>`8.0-zts-trixie` | `8.0.30-p2-apache-trixie`<br>`8.0-apache-trixie` |
+| bookworm | `8.0.30-p2-cli-bookworm`<br>`8.0-cli-bookworm`<br>`8.0-bookworm` | `8.0.30-p2-fpm-bookworm`<br>`8.0-fpm-bookworm` | `8.0.30-p2-zts-bookworm`<br>`8.0-zts-bookworm` | `8.0.30-p2-apache-bookworm`<br>`8.0-apache-bookworm` |
+| alpine3.24 | `8.0.30-p2-cli-alpine3.24`<br>`8.0-cli-alpine3.24`<br>`8.0-alpine3.24` | `8.0.30-p2-fpm-alpine3.24`<br>`8.0-fpm-alpine3.24` | `8.0.30-p2-zts-alpine3.24`<br>`8.0-zts-alpine3.24` |  |
+| alpine3.23 | `8.0.30-p2-cli-alpine3.23`<br>`8.0-cli-alpine3.23`<br>`8.0-alpine3.23` | `8.0.30-p2-fpm-alpine3.23`<br>`8.0-fpm-alpine3.23` | `8.0.30-p2-zts-alpine3.23`<br>`8.0-zts-alpine3.23` |  |
+
+### 8.1 (`8.1.34-p1`)
+
+| | `cli` | `fpm` | `zts` | `apache` |
+| --- | --- | --- | --- | --- |
+| trixie | `8.1.34-p1-cli-trixie`<br>`8.1-cli-trixie`<br>`8.1-trixie`<br>`8.1-cli`<br>`8.1` | `8.1.34-p1-fpm-trixie`<br>`8.1-fpm-trixie`<br>`8.1-fpm` | `8.1.34-p1-zts-trixie`<br>`8.1-zts-trixie`<br>`8.1-zts` | `8.1.34-p1-apache-trixie`<br>`8.1-apache-trixie`<br>`8.1-apache` |
+| bookworm | `8.1.34-p1-cli-bookworm`<br>`8.1-cli-bookworm`<br>`8.1-bookworm` | `8.1.34-p1-fpm-bookworm`<br>`8.1-fpm-bookworm` | `8.1.34-p1-zts-bookworm`<br>`8.1-zts-bookworm` | `8.1.34-p1-apache-bookworm`<br>`8.1-apache-bookworm` |
+| alpine3.22 | `8.1.34-p1-cli-alpine3.22`<br>`8.1-cli-alpine3.22`<br>`8.1-alpine3.22`<br>`8.1-cli-alpine`<br>`8.1-alpine` | `8.1.34-p1-fpm-alpine3.22`<br>`8.1-fpm-alpine3.22`<br>`8.1-fpm-alpine` | `8.1.34-p1-zts-alpine3.22`<br>`8.1-zts-alpine3.22`<br>`8.1-zts-alpine` |  |
+| alpine3.21 | `8.1.34-p1-cli-alpine3.21`<br>`8.1-cli-alpine3.21`<br>`8.1-alpine3.21` | `8.1.34-p1-fpm-alpine3.21`<br>`8.1-fpm-alpine3.21` | `8.1.34-p1-zts-alpine3.21`<br>`8.1-zts-alpine3.21` |  |
+| alpine3.24 | `8.1.34-p1-cli-alpine3.24`<br>`8.1-cli-alpine3.24`<br>`8.1-alpine3.24` | `8.1.34-p1-fpm-alpine3.24`<br>`8.1-fpm-alpine3.24` | `8.1.34-p1-zts-alpine3.24`<br>`8.1-zts-alpine3.24` |  |
+| alpine3.23 | `8.1.34-p1-cli-alpine3.23`<br>`8.1-cli-alpine3.23`<br>`8.1-alpine3.23` | `8.1.34-p1-fpm-alpine3.23`<br>`8.1-fpm-alpine3.23` | `8.1.34-p1-zts-alpine3.23`<br>`8.1-zts-alpine3.23` |  |
+
+<!-- tags:end -->
+
 ## Version number: `-pN`
 
 `php -v` and `PHP_VERSION` report the patch level of the build:
@@ -299,7 +369,7 @@ CVSS and publication date, and the php-src advisories not covered yet.
 
 | When | Do |
 | --- | --- |
-| deb.sury.org publishes a new revision | `tools/import-sury-patches.sh <v>`, review the diff, `./versions.sh && ./apply-templates.sh`, `tools/security-report.py` |
+| deb.sury.org publishes a new revision | `tools/import-sury-patches.sh <v>`, review the diff, `./update.sh` (versions, templates, README tag tables), `tools/security-report.py` |
 | php-src publishes an advisory | `tools/advisory-coverage.py`, then backport (`tools/import-php-src-commit.sh`) or triage |
 | a local build fix | add it to `patches/<v>/local.series`, `tools/bump-patchlevel.sh <v> "<reason>"` |
 | docker-library/php changes | `tools/upstream-review.sh --diff`, port or record it in `upstream.reviewed` |

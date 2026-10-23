@@ -19,7 +19,7 @@ in French; README/SECURITY are English (public project).
   - `triage` (php-src advisories not covered: `GHSA-… covered|not-affected|wontfix|pending: reason`)
   - `known-test-failures` (expected `make test` failures, see tools/run-php-tests.sh)
 - `tools/` — import-sury-patches.sh, import-php-src-commit.sh, bump-patchlevel.sh, advisory-coverage.py,
-  security-report.py, run-php-tests.sh, tags.sh, upstream-review.sh, chroot-test/
+  security-report.py, run-php-tests.sh, tags.sh, readme-tags.sh, upstream-review.sh, chroot-test/
 - `upstream.reviewed` — triage of docker-library/php commits after the fork point (`# base 68549643`)
 - `data/` — caches: advisories.json (CVSS/dates), php-src-advisories.json, coverage.json
 
@@ -81,7 +81,8 @@ in French; README/SECURITY are English (public project).
 tools/import-sury-patches.sh <v>        # new Sury revision (weekly CI job "sury" = --check): bumps -pN + CHANGELOG if patches changed
 tools/advisory-coverage.py              # php-src advisories not covered → backport or triage
 tools/import-php-src-commit.sh <v> <sha> <name> [GHSA]   # backport an official fix (signed commits only)
-./versions.sh && ./apply-templates.sh   # regenerate
+./versions.sh && ./apply-templates.sh   # regenerate (./update.sh = both + tools/readme-tags.sh)
+tools/readme-tags.sh                    # README "Available tags" tables (CI checks they are up to date)
 python3 tools/security-report.py        # SECURITY.md (badges CVSS, dates, open advisories); update the README
                                         # "Security coverage" counts by hand
 tools/run-asan-tests.sh <v>             # ASan build + the series' own tests (CI job "asan", host needs vm.mmap_rnd_bits=28)
@@ -90,8 +91,10 @@ tools/upstream-review.sh --diff         # official image (docker-library/php) co
 ```
 
 Adding a branch: write `patches/<v>/sury.conf` (look at `debian/patches/series` of the Sury source package: Debian
-build patches are the low numbers, keep only the pkg-config ones current distros need), import, build every suite,
-run `tools/run-php-tests.sh <v>`, record `known-test-failures`, update README status table.
+build patches are the low numbers, keep only the pkg-config ones current distros need), import, build every suite
+(at least one historic and one current suite through tools/chroot-test: their configure options differ), run
+`tools/run-php-tests.sh <v>`, record `known-test-failures`, update README status table (`./update.sh` regenerates the
+tag tables).
 
 ## Testing without Docker (this dev environment has none)
 
@@ -104,43 +107,25 @@ musl/glibc chmod via /proc/self/fd → tar-noproc-wrapper; php-fpm -t error_log 
 CI (GitHub Actions) is the real check: build, smoke (`php -v` = version + `-pN`, php-fpm -t,
 docker-php-ext-install intl gd bcmath), `make test` vs known failures, advisory coverage.
 
-## State (2026-10-22, end of afternoon)
+## State (2026-10-23)
 
-- Repo public, GHCR package public (anonymous pull OK). Pushed: Alpine 3.24/3.23 (0031840d).
-- 7.2 = `-p2`, pushed and published (CI run 39759000995 green, 60 jobs): Sury 7.2.34-66 + GH-14834 + 21 php-src security backports (9002-9022, adapted
-  to 7.2, each with ported .phpt tests) + `-fpermissive` on gcc 14 suites. All 66 php-src advisories since 7.2.34
-  are triaged (`patches/7.2/triage`: 14 not-affected, 1 wontfix = Marvin, 1 covered by Sury 0154 without id).
-  tools/run-php-tests.sh 7.2 in an alpine3.23 chroot: no new failure. Also tested before pushing (each new test
-  fails on the old code, passes with the fix, no new failure in the extension's tests): pgsql/pdo_pgsql against a
-  PostgreSQL 18 server in the chroot; pdo_firebird on Debian bookworm (Firebird 3) and trixie (Firebird 4, embedded
-  engine, needs --with-interbase for the 7.2 test harness); soap GHSA-453j by fault injection (LD_PRELOAD shim making
-  xmlNodeSetName() leave a NULL name like libxml2 < 2.13: segfault before, fixed after); soap GHSA-cj93 with the real
-  2 GiB chunked scenario (~3 GB peak; the gcc 15 build kept the UB overflow check, so the old code did not crash here).
-  Every other backport was also run against the old C code (new tests fail before, pass after), except ch8v
-  (uninitialised stack byte, not deterministic); wg4p's upstream test passes on old code too (the OOB read goes to
-  $index): reproduced separately (heap bytes leaked in $index keys, segfault with a 1 GiB offset).
-- Documented, not fixed (no php-src / Sury fix, see Decisions): 7.2 and 7.4 pdo_firebird `firebird_alloc_prepare_stmt` copies `:name` into `pname[64]` unbounded:
-  reachable from SQL text (even a `:name` in a comment), stack protector abort from 72 chars (DoS). No php-src advisory.
-- docker-library/php: all 21 commits since the fork point triaged in upstream.reviewed.
-
-- 7.4 = `-p1`, pushed and published (CI run 39764790360 green, 117 jobs; 7.2 republished too): Sury 7.4.33-31 (114 patches, KEEP_FROM=0048, 0052/0053 README and 0128
-  telemetry excluded) + 9001 w476 pdo_firebird (tested on Debian with Firebird 3/4) + 9002 GH-14834 (PEAR install
-  with libxml2 >= 2.13). All 66 advisories triaged (58 Sury, 1 ours, 6 not-affected, Marvin wontfix); Sury's
-  "partial" r6x9 is complete on the C side (0151 un-XFAILs the 14 tests). run-php-tests 7.4: 50 known failures
-  (OpenSSL 3.5 / libxml2 2.13 / no tty / musl). Chroot builds OK: alpine3.16, alpine3.24, bullseye (fpm); aria-mare's
-  extensions (gd jpeg/freetype, intl, zip, opcache, pdo_mysql, mcrypt 1.0.4, apcu) build on alpine3.16 and 3.24.
-- Found on the way: bullseye is EOL (archive.debian.org, added to `archived_debian`); `pecl install mcrypt-1.0.4`
-  fails on every image incl. the official one ("does not have REST info xml"), use
-  `pecl install https://pecl.php.net/get/mcrypt-1.0.4.tgz`; tools/import-sury-patches.sh failed on a first import
-  (pipefail on missing series/local.series and on diff), fixed.
+- Published on GHCR, CI run 39949325143 green (272 jobs, every image rebuilt):
+  - 7.2 `-p5`: Sury 7.2.34-66 + 21 php-src backports (9002-9022) + mysqlnd double free fix (9023) + GH-11678 musl.
+  - 7.3 `-p1` (new): Sury 7.3.33-35 (82 patches) + 20 advisories through Sury's php7.4 backports adapted to 7.3
+    (9001-9020, 9005 = test infra of Sury 0111) + GH-14834, double free fix (9022), musl (9023). 66/66 triaged.
+    make test: 72 known failures + bug74093 flaky; ASan job green.
+  - 7.4 `-p4`, 8.0 `-p2`, 8.1 `-p1` (Sury series + local fixes, see each patches/<v>/local.series).
+- All php-src advisories triaged on every branch (tools/advisory-coverage.py: 0 untriaged).
+- Documented, not fixed (no php-src / Sury fix): 7.2 / 7.3 / 7.4 pdo_firebird `pname[64]` overflow (see Decisions).
+- Lessons: the 7.3 make test / ASan jobs build with their own configure, not the Dockerfile's: before pushing a new
+  branch, also run tools/chroot-test on one current suite (the 7.3 `--with-external-pcre` miss, fixed in 33319722).
+  A test that changes the openssl/http ServerClientTestCase.inc must keep fixed-port tests working (Sury 0107 → 0111).
+- Name "Mammoth LTS" kept (decided 2026-10-23, after the TMview check: EU mark MAMMOTH 012399895 in classes 9/38/42).
 
 ## Next (agreed with the maintainer)
 
-1. Migrate aria-mare (/app/aria-mare-website, php:7.4-fpm-alpine = alpine3.16; its
-   Dockerfile copies php.ini / pool config to /etc/php7/, which the official image ignores) and civ-corse.
-2. Credits (Sury / docker-library) in README, trademark check of "Mammoth LTS" (maintainer).
-3. civ-corse (/app/civ-corse/civ-corse) moves to ghcr.io/itmg-consulting/mammoth-lts:7.2-fpm-alpine3.12 or
-   …-alpine3.24: test its extensions (mcrypt 1.0.1, apcu), wkhtmltopdf (surnet build for 3.24 / old one for 3.12),
-   pdftk, the app.
-4. Next branches: 8.0 → 8.1 → 7.3 → 7.1 → 7.0 (same advisory triage per branch); then arm64, cosign/SBOM.
-- Context: started for civ-corse (PHP 7.2 FPM on Alpine, CVE-2026-109618/109619).
+1. Report the mysqlnd double free of the GHSA-h35g backport privately to Sury (draft /app/report-sury-mysqlnd.txt,
+   php7.3 0113 / 7.4 0101 / 8.0 0074; our fix public since 2026-10-22). Not sent yet.
+2. Next branches: 7.1 → 7.0 (same advisory triage per branch); then arm64, cosign/SBOM.
+- Context: started for civ-corse (PHP 7.2 FPM on Alpine, CVE-2026-109618/109619); aria-mare (7.4) and civ-corse
+  (7.2) run on Mammoth images in production since 2026-10-22.
