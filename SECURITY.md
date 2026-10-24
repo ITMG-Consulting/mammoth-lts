@@ -7,7 +7,7 @@ every identifier is checked against the patches actually applied (`patches/<vers
 
 ## PHP 7.0 — `7.0.33-p1`
 
-83 CVE fixed since the 7.0.33 release, 204 patches applied.
+83 CVE fixed since the 7.0.33 release, 205 patches applied.
 
 | Advisory | Published | Fix | Backported from | Fixed here |
 | --- | --- | --- | --- | --- |
