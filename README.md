@@ -16,18 +16,18 @@ Security-patched Docker images for end-of-life PHP: **PHP branches 7.0 → 8.1 w
 
 | Branch | Status | Base images (historic → current) | Patch series |
 | --- | --- | --- | --- |
+| 7.0 | built, tested | stretch, jessie, alpine3.7 → trixie, bookworm, alpine3.24, alpine3.23 | [patches/7.0](patches/7.0) |
 | 7.1 | built, tested | buster, stretch, alpine3.10, alpine3.9 → trixie, bookworm, alpine3.24, alpine3.23 | [patches/7.1](patches/7.1) |
 | 7.2 | built, tested | buster, stretch, alpine3.12, alpine3.11 → trixie, bookworm, alpine3.24, alpine3.23 | [patches/7.2](patches/7.2) |
 | 7.3 | built, tested | bullseye, buster, alpine3.15, alpine3.14 → trixie, bookworm, alpine3.24, alpine3.23 | [patches/7.3](patches/7.3) |
 | 7.4 | built, tested | bullseye, buster, alpine3.16, alpine3.15 → trixie, bookworm, alpine3.24, alpine3.23 | [patches/7.4](patches/7.4) |
 | 8.0 | built, tested | bullseye, buster, alpine3.16 → trixie, bookworm, alpine3.24, alpine3.23 | [patches/8.0](patches/8.0) |
 | 8.1 | built, tested | trixie, bookworm, alpine3.22, alpine3.21 → trixie, bookworm, alpine3.24, alpine3.23 | [patches/8.1](patches/8.1) |
-| 7.0 | planned | | |
 
 Each branch is built on the base images docker-library last published it on (same tags as Docker Hub, so
 `FROM php:7.2-fpm-alpine3.12` → `FROM ghcr.io/itmg-consulting/mammoth-lts:7.2-fpm-alpine3.12` is a drop-in change; **those OS releases are
 EOL themselves**, Debian ones install from archive.debian.org) and on the currently supported ones, which we recommend.
-Suite-less and `-alpine` aliases keep their Docker Hub meaning (`7.1-fpm` / `7.2-fpm` = buster, `7.1-fpm-alpine` = alpine3.10, `7.2-fpm-alpine` = alpine3.12,
+Suite-less and `-alpine` aliases keep their Docker Hub meaning (`7.0-fpm` = stretch, `7.0-fpm-alpine` = alpine3.7, `7.1-fpm` / `7.2-fpm` = buster, `7.1-fpm-alpine` = alpine3.10, `7.2-fpm-alpine` = alpine3.12,
 `7.3-fpm` / `7.4-fpm` / `8.0-fpm` = bullseye, `7.3-fpm-alpine` = alpine3.15, `7.4-fpm-alpine` / `8.0-fpm-alpine` = alpine3.16, `8.1-fpm` = trixie,
 `8.1-fpm-alpine` = alpine3.22).
 
@@ -35,6 +35,30 @@ A branch is generated once `patches/<version>/series` exists (`versions.sh`). Su
 built here: use the official image.
 
 ## Security coverage
+
+### PHP 7.0 (`7.0.33-p1`)
+
+| | Advisories |
+| --- | --- |
+| Published by php-src since 7.0.33 (January 2019) | **66** |
+| Fixed by the deb.sury.org series | 26 |
+| Fixed by our own backports (`patches/7.0/9001`–`9024`) | 24 |
+| Not affecting 7.0 | 15 |
+| Not fixed | 1 |
+| Not triaged yet | **0** |
+
+- **deb.sury.org** still builds 7.0 (revision 93), with the same gap as the later branches: the 2025-2026 HTTP
+  wrapper, SOAP, OpenSSL hostname, mysqlnd, pgsql, phar, FastCGI and filter fixes are not in its series.
+- **Our backports**: the 7.1 set, itself adapted from 7.2, re-adapted where the 7.0 code differs (see the header of
+  each patch). Also php-src 67259e45 (GH-14834, PEAR with libxml2 ≥ 2.13) and CVE-2019-18218 (9027, the bundled
+  libmagic CDF overflow): deb.sury.org ships that one in its php7.1 series (0051) but not in php7.0, and it applies
+  as-is.
+- **Fix of a backport**: patch 9025, the mysqlnd double free, as for 7.1 (9025) and 7.2 (9023).
+- **Not affecting 7.0**: the same 15 as 7.1 (vulnerable code added in a later branch, Windows-only issues, and the
+  `urldecode()` ctype issue, which can only read out of bounds on NetBSD).
+- **Not fixed**: the Marvin attack, as for 7.2 (stretch, jessie and alpine3.7 ship OpenSSL 1.0 / 1.1: exposed).
+- `docker-php-ext-enable` writes `extension=<name>.so` on 7.0, which does not load extensions by their short name,
+  and phpdbg is linked against readline.
 
 ### PHP 7.1 (`7.1.33-p1`)
 
@@ -101,9 +125,10 @@ and source, and gives the reason for every advisory not fixed.
   | --- | --- | --- |
   | trixie, alpine3.24, alpine3.23 | 3.5 | mitigated |
   | bookworm | 3.0 (no backport) | exposed |
-  | bullseye, buster, stretch, alpine3.16, alpine3.15, alpine3.12, alpine3.11 | 1.1 | exposed |
+  | bullseye, buster, stretch, alpine3.16, alpine3.15, alpine3.12, alpine3.11, alpine3.10, alpine3.9 | 1.1 | exposed |
+  | jessie, alpine3.7 | 1.0 | exposed |
 
-  The default tags (`7.1-fpm`, `7.1-fpm-alpine`, `7.2-fpm`, `7.2-fpm-alpine`, `7.3-fpm`, `7.3-fpm-alpine`, `7.4-fpm`, `7.4-fpm-alpine`, `8.0-fpm`, `8.0-fpm-alpine`) are exposed. Only applications that decrypt
+  The default tags (`7.0-fpm`, `7.0-fpm-alpine`, `7.1-fpm`, `7.1-fpm-alpine`, `7.2-fpm`, `7.2-fpm-alpine`, `7.3-fpm`, `7.3-fpm-alpine`, `7.4-fpm`, `7.4-fpm-alpine`, `8.0-fpm`, `8.0-fpm-alpine`) are exposed. Only applications that decrypt
   with an RSA private key are concerned: `openssl_private_decrypt()` (its default padding is PKCS#1 v1.5) and
   `openssl_open()`. The attacker must also be able to submit many ciphertexts and time the responses. TLS is not
   affected (PHP does not decrypt RSA as a TLS client; the web server handles TLS). If your application decrypts RSA,
@@ -235,6 +260,18 @@ Per base image and variant: the tag of the current patch level (pins that exact 
 which always point to the latest build. Images are `linux/amd64`.
 
 <!-- tags:start (tools/readme-tags.sh) -->
+### 7.0 (`7.0.33-p1`)
+
+| | `cli` | `fpm` | `zts` | `apache` |
+| --- | --- | --- | --- | --- |
+| stretch | `7.0.33-p1-cli-stretch`<br>`7.0-cli-stretch`<br>`7.0-stretch`<br>`7.0-cli`<br>`7.0` | `7.0.33-p1-fpm-stretch`<br>`7.0-fpm-stretch`<br>`7.0-fpm` | `7.0.33-p1-zts-stretch`<br>`7.0-zts-stretch`<br>`7.0-zts` | `7.0.33-p1-apache-stretch`<br>`7.0-apache-stretch`<br>`7.0-apache` |
+| jessie | `7.0.33-p1-cli-jessie`<br>`7.0-cli-jessie`<br>`7.0-jessie` | `7.0.33-p1-fpm-jessie`<br>`7.0-fpm-jessie` | `7.0.33-p1-zts-jessie`<br>`7.0-zts-jessie` | `7.0.33-p1-apache-jessie`<br>`7.0-apache-jessie` |
+| alpine3.7 | `7.0.33-p1-cli-alpine3.7`<br>`7.0-cli-alpine3.7`<br>`7.0-alpine3.7`<br>`7.0-cli-alpine`<br>`7.0-alpine` | `7.0.33-p1-fpm-alpine3.7`<br>`7.0-fpm-alpine3.7`<br>`7.0-fpm-alpine` | `7.0.33-p1-zts-alpine3.7`<br>`7.0-zts-alpine3.7`<br>`7.0-zts-alpine` |  |
+| trixie | `7.0.33-p1-cli-trixie`<br>`7.0-cli-trixie`<br>`7.0-trixie` | `7.0.33-p1-fpm-trixie`<br>`7.0-fpm-trixie` | `7.0.33-p1-zts-trixie`<br>`7.0-zts-trixie` | `7.0.33-p1-apache-trixie`<br>`7.0-apache-trixie` |
+| bookworm | `7.0.33-p1-cli-bookworm`<br>`7.0-cli-bookworm`<br>`7.0-bookworm` | `7.0.33-p1-fpm-bookworm`<br>`7.0-fpm-bookworm` | `7.0.33-p1-zts-bookworm`<br>`7.0-zts-bookworm` | `7.0.33-p1-apache-bookworm`<br>`7.0-apache-bookworm` |
+| alpine3.24 | `7.0.33-p1-cli-alpine3.24`<br>`7.0-cli-alpine3.24`<br>`7.0-alpine3.24` | `7.0.33-p1-fpm-alpine3.24`<br>`7.0-fpm-alpine3.24` | `7.0.33-p1-zts-alpine3.24`<br>`7.0-zts-alpine3.24` |  |
+| alpine3.23 | `7.0.33-p1-cli-alpine3.23`<br>`7.0-cli-alpine3.23`<br>`7.0-alpine3.23` | `7.0.33-p1-fpm-alpine3.23`<br>`7.0-fpm-alpine3.23` | `7.0.33-p1-zts-alpine3.23`<br>`7.0-zts-alpine3.23` |  |
+
 ### 7.1 (`7.1.33-p1`)
 
 | | `cli` | `fpm` | `zts` | `apache` |

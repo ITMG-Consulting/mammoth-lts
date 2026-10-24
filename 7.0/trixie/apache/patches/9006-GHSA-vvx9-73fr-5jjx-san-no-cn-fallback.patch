@@ -1,0 +1,554 @@
+Origin: https://github.com/php/php-src/commit/0bb308eb4cf699e707efbcf97ffb70e46a176be7
+Advisory: GHSA-vvx9-73fr-5jjx, CVE-2026-91769
+Imported-by: mammoth-lts 7.1 backport (patches/7.1/9006), adapted to 7.0
+
+From 09a573fb97bf949b61cba54db39ba4cdedfb7db0 Mon Sep 17 00:00:00 2001
+From: Jakub Zelenka <bukka@php.net>
+Date: Mon, 10 Aug 2026 22:25:55 +0200
+Subject: [PATCH] Fix GHSA-vvx9-73fr-5jjx: do not fall back to CN if the cert
+ has a service ID
+
+RFC 6125 6.4.4 forbids matching CN-ID if the certificate presents a DNS-ID,
+SRV-ID or URI-ID. Falling back allowed a CA that validated only one of those
+identities to leave an unvalidated CN to be matched as a host name.
+
+IP-ID is left out as it is out of scope of RFC 6125 and suppressing CN there
+would break IP-only SAN certificates.
+
+Backport of php-src 0bb308eb4cf699e707efbcf97ffb70e46a176be7 (PHP-8.2) to PHP 7.2:
+- zend_bool / 1 / 0 instead of bool / true / false
+- tests: fixed port 64321 with phpt_notify()/phpt_wait() (7.2 ServerClientTestCase has no {{ ADDR }}), lowercase "unable to connect"
+- tests: CertificateGenerator.inc updated to the PHP-8.2 version (subjectAltName support, explicit openssl.cnf for the CA so generated chains verify with OpenSSL 3), without the trailing comma in a call (PHP 7.3+)
+
+7.1: matches_san_list() / matches_common_name() have no php_openssl_ prefix yet; ext/openssl/tests has no
+CertificateGenerator.inc: the file is added as the 7.2 port has it (PHP-8.2 version with subjectAltName support).
+
+7.0 adaptation: context only, 7.0 compares ASN1_STRING_length() without the (size_t) cast 7.1 has.
+---
+diff --git a/ext/openssl/tests/CertificateGenerator.inc b/ext/openssl/tests/CertificateGenerator.inc
+new file mode 100644
+index 00000000..d9168035
+--- /dev/null
++++ b/ext/openssl/tests/CertificateGenerator.inc
+@@ -0,0 +1,173 @@
++<?php
++
++class CertificateGenerator
++{
++    const CONFIG = __DIR__. DIRECTORY_SEPARATOR . 'openssl.cnf';
++
++    /** @var resource */
++    private $ca;
++
++    /** @var resource */
++    private $caKey;
++
++    /** @var resource|null */
++    private $lastCert;
++
++    /** @var resource|null */
++    private $lastKey;
++
++    public function __construct()
++    {
++        if (!extension_loaded('openssl')) {
++            throw new RuntimeException(
++                'openssl extension must be loaded to generate certificates'
++            );
++        }
++        $this->generateCa();
++    }
++
++    /**
++     * @param int|null $keyLength
++     * @return resource
++     */
++    private static function generateKey($keyLength = null)
++    {
++        if (null === $keyLength) {
++            $keyLength = 2048;
++        }
++
++        return openssl_pkey_new([
++            'private_key_bits' => $keyLength,
++            'private_key_type' => OPENSSL_KEYTYPE_RSA,
++            'encrypt_key' => false,
++        ]);
++    }
++
++    private function generateCa()
++    {
++        $this->caKey = self::generateKey();
++        $dn = [
++            'countryName' => 'GB',
++            'stateOrProvinceName' => 'Berkshire',
++            'localityName' => 'Newbury',
++            'organizationName' => 'Example Certificate Authority',
++            'commonName' => 'CA for PHP Tests'
++        ];
++
++        $this->ca = openssl_csr_sign(
++            openssl_csr_new(
++                $dn,
++                $this->caKey,
++                [
++                    'x509_extensions' => 'v3_ca',
++                    'config' => self::CONFIG,
++                ]
++            ),
++            null,
++            $this->caKey,
++            2,
++            [
++                'config' => self::CONFIG,
++            ]
++        );
++    }
++
++    public function getCaCert()
++    {
++        $output = '';
++        openssl_x509_export($this->ca, $output);
++
++        return $output;
++    }
++
++    public function saveCaCert($file)
++    {
++        openssl_x509_export_to_file($this->ca, $file);
++    }
++
++    private function generateCertAndKey(
++        $commonNameForCert, $file, $keyLength = null, $subjectAltName = null
++    ) {
++        $dn = [
++            'countryName' => 'BY',
++            'stateOrProvinceName' => 'Minsk',
++            'localityName' => 'Minsk',
++            'organizationName' => 'Example Org',
++        ];
++        if ($commonNameForCert !== null) {
++            $dn['commonName'] = $commonNameForCert;
++        }
++
++        $subjectAltNameConfig =
++            $subjectAltName ? "subjectAltName = $subjectAltName" : "";
++        $configCode = <<<CONFIG
++[ req ]
++distinguished_name = req_distinguished_name
++default_md = sha256
++default_bits = 1024
++
++[ req_distinguished_name ]
++
++[ v3_req ]
++basicConstraints = CA:FALSE
++keyUsage = nonRepudiation, digitalSignature, keyEncipherment
++$subjectAltNameConfig
++
++[ usr_cert ]
++basicConstraints = CA:FALSE
++$subjectAltNameConfig
++CONFIG;
++        $configFile = $file . '.cnf';
++        file_put_contents($configFile, $configCode);
++
++        $config = [
++            'config' => $configFile,
++            'req_extensions' => 'v3_req',
++            'x509_extensions' => 'usr_cert',
++        ];
++
++        $this->lastKey = self::generateKey($keyLength);
++        $csr = openssl_csr_new($dn, $this->lastKey, $config);
++        $this->lastCert = openssl_csr_sign(
++            $csr,
++            $this->ca,
++            $this->caKey,
++            /* days */ 2,
++            $config
++        );
++
++        return $config;
++    }
++
++    public function saveNewCertAsFileWithKey(
++        $commonNameForCert, $file, $keyLength = null, $subjectAltName = null
++    ) {
++        $config = $this->generateCertAndKey($commonNameForCert, $file, $keyLength, $subjectAltName);
++
++        $certText = '';
++        openssl_x509_export($this->lastCert, $certText);
++
++        $keyText = '';
++        openssl_pkey_export($this->lastKey, $keyText, null, $config);
++
++        file_put_contents($file, $certText . PHP_EOL . $keyText);
++
++        unlink($config['config']);
++    }
++
++    public function saveNewCertAndKey(
++        $commonNameForCert, $certFile, $keyFile, $keyLength = null, $subjectAltName = null
++    ) {
++        $config = $this->generateCertAndKey($commonNameForCert, $certFile, $keyLength, $subjectAltName);
++
++        openssl_x509_export_to_file($this->lastCert, $certFile);
++        openssl_pkey_export_to_file($this->lastKey, $keyFile, null, $config);
++
++        unlink($config['config']);
++    }
++
++    public function getCertDigest($algo)
++    {
++        return openssl_x509_fingerprint($this->lastCert, $algo);
++    }
++}
+diff --git a/ext/openssl/tests/san_absent_cn_fallback.phpt b/ext/openssl/tests/san_absent_cn_fallback.phpt
+new file mode 100644
+index 00000000..825a068c
+--- /dev/null
++++ b/ext/openssl/tests/san_absent_cn_fallback.phpt
+@@ -0,0 +1,63 @@
++--TEST--
++Peer verification falls back to CN when the certificate has no SAN
++--EXTENSIONS--
++openssl
++--SKIPIF--
++<?php
++if (!function_exists("proc_open")) die("skip no proc_open");
++?>
++--FILE--
++<?php
++$certFile = __DIR__ . DIRECTORY_SEPARATOR . 'san_absent_cn_fallback.pem.tmp';
++
++$serverCode = <<<'CODE'
++    $serverUri = "ssl://127.0.0.1:64321";
++    $serverFlags = STREAM_SERVER_BIND | STREAM_SERVER_LISTEN;
++    $serverCtx = stream_context_create(['ssl' => [
++        'local_cert' => '%s',
++    ]]);
++
++    $server = stream_socket_server($serverUri, $errno, $errstr, $serverFlags, $serverCtx);
++    phpt_notify();
++
++    @stream_socket_accept($server, 1);
++    @stream_socket_accept($server, 1);
++CODE;
++$serverCode = sprintf($serverCode, $certFile);
++
++$clientCode = <<<'CODE'
++    $serverUri = "ssl://127.0.0.1:64321";
++    $clientFlags = STREAM_CLIENT_CONNECT;
++    $clientCtx = stream_context_create(['ssl' => [
++        'verify_peer' => false,
++    ]]);
++
++    phpt_wait();
++
++    stream_context_set_option($clientCtx, 'ssl', 'peer_name', 'cn.example.org');
++    var_dump(stream_socket_client($serverUri, $errno, $errstr, 1, $clientFlags, $clientCtx));
++
++    stream_context_set_option($clientCtx, 'ssl', 'peer_name', 'other.example.org');
++    var_dump(stream_socket_client($serverUri, $errno, $errstr, 1, $clientFlags, $clientCtx));
++CODE;
++
++include 'CertificateGenerator.inc';
++$certificateGenerator = new CertificateGenerator();
++$certificateGenerator->saveNewCertAsFileWithKey('cn.example.org', $certFile);
++
++include 'ServerClientTestCase.inc';
++ServerClientTestCase::getInstance()->run($clientCode, $serverCode);
++?>
++--CLEAN--
++<?php
++@unlink(__DIR__ . DIRECTORY_SEPARATOR . 'san_absent_cn_fallback.pem.tmp');
++?>
++--EXPECTF--
++resource(%d) of type (stream)
++
++Warning: stream_socket_client(): Peer certificate CN=`cn.example.org' did not match expected CN=`other.example.org' in %s on line %d
++
++Warning: stream_socket_client(): Failed to enable crypto in %s on line %d
++
++Warning: stream_socket_client(): unable to connect to ssl://127.0.0.1:%d (Unknown error) in %s on line %d
++bool(false)
+diff --git a/ext/openssl/tests/san_no_cn_fallback.phpt b/ext/openssl/tests/san_no_cn_fallback.phpt
+new file mode 100644
+index 00000000..ca8bdcef
+--- /dev/null
++++ b/ext/openssl/tests/san_no_cn_fallback.phpt
+@@ -0,0 +1,66 @@
++--TEST--
++Peer verification does not fall back to CN when the certificate has a SAN
++--EXTENSIONS--
++openssl
++--SKIPIF--
++<?php
++if (!function_exists("proc_open")) die("skip no proc_open");
++?>
++--FILE--
++<?php
++$certFile = __DIR__ . DIRECTORY_SEPARATOR . 'san_no_cn_fallback.pem.tmp';
++
++$serverCode = <<<'CODE'
++    $serverUri = "ssl://127.0.0.1:64321";
++    $serverFlags = STREAM_SERVER_BIND | STREAM_SERVER_LISTEN;
++    $serverCtx = stream_context_create(['ssl' => [
++        'local_cert' => '%s',
++    ]]);
++
++    $server = stream_socket_server($serverUri, $errno, $errstr, $serverFlags, $serverCtx);
++    phpt_notify();
++
++    @stream_socket_accept($server, 1);
++    @stream_socket_accept($server, 1);
++CODE;
++$serverCode = sprintf($serverCode, $certFile);
++
++$clientCode = <<<'CODE'
++    $serverUri = "ssl://127.0.0.1:64321";
++    $clientFlags = STREAM_CLIENT_CONNECT;
++    $clientCtx = stream_context_create(['ssl' => [
++        'verify_peer' => false,
++    ]]);
++
++    phpt_wait();
++
++    // The SAN entry is matched as usual.
++    stream_context_set_option($clientCtx, 'ssl', 'peer_name', 'san.example.org');
++    var_dump(stream_socket_client($serverUri, $errno, $errstr, 1, $clientFlags, $clientCtx));
++
++    // The CN must not be considered because the certificate presents a SAN.
++    stream_context_set_option($clientCtx, 'ssl', 'peer_name', 'cn.example.org');
++    var_dump(stream_socket_client($serverUri, $errno, $errstr, 1, $clientFlags, $clientCtx));
++CODE;
++
++include 'CertificateGenerator.inc';
++$certificateGenerator = new CertificateGenerator();
++$certificateGenerator->saveNewCertAsFileWithKey(
++    'cn.example.org', $certFile, null, 'DNS:san.example.org');
++
++include 'ServerClientTestCase.inc';
++ServerClientTestCase::getInstance()->run($clientCode, $serverCode);
++?>
++--CLEAN--
++<?php
++@unlink(__DIR__ . DIRECTORY_SEPARATOR . 'san_no_cn_fallback.pem.tmp');
++?>
++--EXPECTF--
++resource(%d) of type (stream)
++
++Warning: stream_socket_client(): Peer certificate subjectAltName did not match expected name `cn.example.org' in %s on line %d
++
++Warning: stream_socket_client(): Failed to enable crypto in %s on line %d
++
++Warning: stream_socket_client(): unable to connect to ssl://127.0.0.1:%d (Unknown error) in %s on line %d
++bool(false)
+diff --git a/ext/openssl/tests/san_peer_matching.phpt b/ext/openssl/tests/san_peer_matching.phpt
+index 0e1f30cb..d0404438 100644
+--- a/ext/openssl/tests/san_peer_matching.phpt
++++ b/ext/openssl/tests/san_peer_matching.phpt
+@@ -42,7 +42,7 @@ ServerClientTestCase::getInstance()->run($clientCode, $serverCode);
+ --EXPECTF--
+ resource(%d) of type (stream)
+ 
+-Warning: stream_socket_client(): Unable to locate peer certificate CN in %s on line %d
++Warning: stream_socket_client(): Peer certificate subjectAltName did not match expected name `moar.example.org' in %s on line %d
+ 
+ Warning: stream_socket_client(): Failed to enable crypto in %s on line %d
+ 
+diff --git a/ext/openssl/tests/san_srv_no_cn_fallback.phpt b/ext/openssl/tests/san_srv_no_cn_fallback.phpt
+new file mode 100644
+index 00000000..735a55df
+--- /dev/null
++++ b/ext/openssl/tests/san_srv_no_cn_fallback.phpt
+@@ -0,0 +1,59 @@
++--TEST--
++Peer verification does not fall back to CN when the certificate has an SRV-ID
++--EXTENSIONS--
++openssl
++--SKIPIF--
++<?php
++if (!function_exists("proc_open")) die("skip no proc_open");
++?>
++--FILE--
++<?php
++$certFile = __DIR__ . DIRECTORY_SEPARATOR . 'san_srv_no_cn_fallback.pem.tmp';
++
++$serverCode = <<<'CODE'
++    $serverUri = "ssl://127.0.0.1:64321";
++    $serverFlags = STREAM_SERVER_BIND | STREAM_SERVER_LISTEN;
++    $serverCtx = stream_context_create(['ssl' => [
++        'local_cert' => '%s',
++    ]]);
++
++    $server = stream_socket_server($serverUri, $errno, $errstr, $serverFlags, $serverCtx);
++    phpt_notify();
++
++    @stream_socket_accept($server, 1);
++CODE;
++$serverCode = sprintf($serverCode, $certFile);
++
++$clientCode = <<<'CODE'
++    $serverUri = "ssl://127.0.0.1:64321";
++    $clientFlags = STREAM_CLIENT_CONNECT;
++    $clientCtx = stream_context_create(['ssl' => [
++        'verify_peer' => false,
++    ]]);
++
++    phpt_wait();
++
++    // The CN must not be considered because the certificate presents an SRV-ID.
++    stream_context_set_option($clientCtx, 'ssl', 'peer_name', 'cn.example.org');
++    var_dump(stream_socket_client($serverUri, $errno, $errstr, 1, $clientFlags, $clientCtx));
++CODE;
++
++include 'CertificateGenerator.inc';
++$certificateGenerator = new CertificateGenerator();
++$certificateGenerator->saveNewCertAsFileWithKey(
++    'cn.example.org', $certFile, null, 'otherName:1.3.6.1.5.5.7.8.7;IA5STRING:_https.san.example.org');
++
++include 'ServerClientTestCase.inc';
++ServerClientTestCase::getInstance()->run($clientCode, $serverCode);
++?>
++--CLEAN--
++<?php
++@unlink(__DIR__ . DIRECTORY_SEPARATOR . 'san_srv_no_cn_fallback.pem.tmp');
++?>
++--EXPECTF--
++Warning: stream_socket_client(): Peer certificate subjectAltName did not match expected name `cn.example.org' in %s on line %d
++
++Warning: stream_socket_client(): Failed to enable crypto in %s on line %d
++
++Warning: stream_socket_client(): unable to connect to ssl://127.0.0.1:%d (Unknown error) in %s on line %d
++bool(false)
+diff --git a/ext/openssl/tests/san_uri_no_cn_fallback.phpt b/ext/openssl/tests/san_uri_no_cn_fallback.phpt
+new file mode 100644
+index 00000000..bef15534
+--- /dev/null
++++ b/ext/openssl/tests/san_uri_no_cn_fallback.phpt
+@@ -0,0 +1,59 @@
++--TEST--
++Peer verification does not fall back to CN when the certificate has a URI-ID
++--EXTENSIONS--
++openssl
++--SKIPIF--
++<?php
++if (!function_exists("proc_open")) die("skip no proc_open");
++?>
++--FILE--
++<?php
++$certFile = __DIR__ . DIRECTORY_SEPARATOR . 'san_uri_no_cn_fallback.pem.tmp';
++
++$serverCode = <<<'CODE'
++    $serverUri = "ssl://127.0.0.1:64321";
++    $serverFlags = STREAM_SERVER_BIND | STREAM_SERVER_LISTEN;
++    $serverCtx = stream_context_create(['ssl' => [
++        'local_cert' => '%s',
++    ]]);
++
++    $server = stream_socket_server($serverUri, $errno, $errstr, $serverFlags, $serverCtx);
++    phpt_notify();
++
++    @stream_socket_accept($server, 1);
++CODE;
++$serverCode = sprintf($serverCode, $certFile);
++
++$clientCode = <<<'CODE'
++    $serverUri = "ssl://127.0.0.1:64321";
++    $clientFlags = STREAM_CLIENT_CONNECT;
++    $clientCtx = stream_context_create(['ssl' => [
++        'verify_peer' => false,
++    ]]);
++
++    phpt_wait();
++
++    // The CN must not be considered because the certificate presents a URI-ID.
++    stream_context_set_option($clientCtx, 'ssl', 'peer_name', 'cn.example.org');
++    var_dump(stream_socket_client($serverUri, $errno, $errstr, 1, $clientFlags, $clientCtx));
++CODE;
++
++include 'CertificateGenerator.inc';
++$certificateGenerator = new CertificateGenerator();
++$certificateGenerator->saveNewCertAsFileWithKey(
++    'cn.example.org', $certFile, null, 'URI:https://san.example.org/x');
++
++include 'ServerClientTestCase.inc';
++ServerClientTestCase::getInstance()->run($clientCode, $serverCode);
++?>
++--CLEAN--
++<?php
++@unlink(__DIR__ . DIRECTORY_SEPARATOR . 'san_uri_no_cn_fallback.pem.tmp');
++?>
++--EXPECTF--
++Warning: stream_socket_client(): Peer certificate subjectAltName did not match expected name `cn.example.org' in %s on line %d
++
++Warning: stream_socket_client(): Failed to enable crypto in %s on line %d
++
++Warning: stream_socket_client(): unable to connect to ssl://127.0.0.1:%d (Unknown error) in %s on line %d
++bool(false)
+diff --git a/ext/openssl/xp_ssl.c b/ext/openssl/xp_ssl.c
+index da478eeb..dd172cb8 100644
+--- a/ext/openssl/xp_ssl.c
++++ b/ext/openssl/xp_ssl.c
+@@ -399,7 +399,8 @@ static zend_bool matches_wildcard_name(const char *subjectname, const char *cert
+ }
+ /* }}} */
+ 
+-static zend_bool matches_san_list(X509 *peer, const char *subject_name) /* {{{ */
++static zend_bool matches_san_list(
++		X509 *peer, const char *subject_name, zend_bool *has_service_id) /* {{{ */
+ {
+ 	int i, len;
+ 	unsigned char *cert_name = NULL;
+@@ -408,10 +409,14 @@ static zend_bool matches_san_list(X509 *peer, const char *subject_name) /* {{{ *
+ 	GENERAL_NAMES *alt_names = X509_get_ext_d2i(peer, NID_subject_alt_name, 0, 0);
+ 	int alt_name_count = sk_GENERAL_NAME_num(alt_names);
+ 
++	*has_service_id = 0;
++
+ 	for (i = 0; i < alt_name_count; i++) {
+ 		GENERAL_NAME *san = sk_GENERAL_NAME_value(alt_names, i);
+ 
+ 		if (san->type == GEN_DNS) {
++			*has_service_id = 1;
++
+ 			ASN1_STRING_to_UTF8(&cert_name, san->d.dNSName);
+ 			if (ASN1_STRING_length(san->d.dNSName) != strlen((const char*)cert_name)) {
+ 				OPENSSL_free(cert_name);
+@@ -446,6 +451,16 @@ static zend_bool matches_san_list(X509 *peer, const char *subject_name) /* {{{ *
+  * 			 * Because IP SAN names are officially deprecated and are
+  * 			 			 * not allowed by CAs starting in 2015. Deal with it.
+  * 			 			 			 */
++		} else if (san->type == GEN_URI) {
++			*has_service_id = 1;
++		} else if (san->type == GEN_OTHERNAME) {
++			char oid[32];
++
++			/* SRV-ID, matched by OID because NID_SRVName needs OpenSSL 3.0 */
++			if (OBJ_obj2txt(oid, sizeof(oid), san->d.otherName->type_id, 1) > 0
++					&& strcmp(oid, "1.3.6.1.5.5.7.8.7") == 0) {
++				*has_service_id = 1;
++			}
+ 		}
+ 	}
+ 
+@@ -553,8 +568,16 @@ static int apply_peer_verification_policy(SSL *ssl, X509 *peer, php_stream *stre
+ 		}
+ 
+ 		if (peer_name) {
+-			if (matches_san_list(peer, peer_name)) {
++			zend_bool has_service_id = 0;
++
++			if (matches_san_list(peer, peer_name, &has_service_id)) {
+ 				return SUCCESS;
++			} else if (has_service_id) {
++				/* CN must be ignored if the certificate presents a service identity. */
++				php_error_docref(NULL, E_WARNING,
++					"Peer certificate subjectAltName did not match expected name `%s'",
++					peer_name);
++				return FAILURE;
+ 			} else if (matches_common_name(peer, peer_name)) {
+ 				return SUCCESS;
+ 			} else {

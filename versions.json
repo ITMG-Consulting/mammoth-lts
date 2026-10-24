@@ -1,5 +1,45 @@
 {
-  "7.0": null,
+  "7.0": {
+    "version": "7.0.33",
+    "url": "https://www.php.net/distributions/php-7.0.33.tar.xz",
+    "ascUrl": "https://www.php.net/distributions/php-7.0.33.tar.xz.asc",
+    "sha256": "ab8c5be6e32b1f8d032909dedaaaa4bbb1a209e519abb01a52ce3914f9a13d96",
+    "extraVersion": "-p1",
+    "patches": true,
+    "currentSuites": [
+      "trixie",
+      "bookworm",
+      "alpine3.24",
+      "alpine3.23"
+    ],
+    "variants": [
+      "stretch/cli",
+      "stretch/apache",
+      "stretch/fpm",
+      "stretch/zts",
+      "jessie/cli",
+      "jessie/apache",
+      "jessie/fpm",
+      "jessie/zts",
+      "alpine3.7/cli",
+      "alpine3.7/fpm",
+      "alpine3.7/zts",
+      "trixie/cli",
+      "trixie/apache",
+      "trixie/fpm",
+      "trixie/zts",
+      "bookworm/cli",
+      "bookworm/apache",
+      "bookworm/fpm",
+      "bookworm/zts",
+      "alpine3.24/cli",
+      "alpine3.24/fpm",
+      "alpine3.24/zts",
+      "alpine3.23/cli",
+      "alpine3.23/fpm",
+      "alpine3.23/zts"
+    ]
+  },
   "7.1": {
     "version": "7.1.33",
     "url": "https://www.php.net/distributions/php-7.1.33.tar.xz",

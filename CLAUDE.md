@@ -69,8 +69,13 @@ in French; README/SECURITY are English (public project).
 - Patched tree is re-packed into `/usr/src/php.tar.xz` so `docker-php-ext-install` builds patched extensions.
 - libxml2 ≥ 2.13 breaks ext/xml entity handling (PEAR install fails): php-src 67259e45 (GH-14834) as 9001 for 7.2.
 - Debian jessie/stretch/buster/bullseye: sources rewritten to archive.debian.org (`archived_debian`), no `-updates`
-  (bullseye LTS ended 2026-08: deb.debian.org pool files already 404).
+  (bullseye LTS ended 2026-08: deb.debian.org pool files already 404). jessie on top of that: Debian never renews
+  the signing key of an archived release, so apt can no longer authenticate the archive
+  (`expired_archive_key` → `APT::Get::AllowUnauthenticated`; the PHP sources keep their GPG + SHA-256 check).
 - Alpine < 3.14 has no `www-data` group in baselayout.
+- jessie (the oldest suite): GnuPG 1.4 has no `gpgconf` (`gnupg1` → the `command -v gpgconf` guard of the Docker Hub
+  image of that era), and gcc 4.9 rejects `-Wno-error=incompatible-pointer-types` (gcc 5) and `-std=c++17`
+  (`old_gcc`; its ICU 52 does not need the C++17 headers the flag is there for).
 - gcc >= 14 (alpine3.21+, trixie+, `gcc14` in the template): PHP 7 configure checks fail silently on implicit
   declarations (lost getaddrinfo = no IPv6 name resolution, pread/pwrite, ZEND_MM_ALIGNMENT, POSIX readdir_r...):
   `-fpermissive` in PHP_CFLAGS (as Sury). Check: diff `/usr/local/include/php/main/php_config.h` against an old suite.
@@ -110,6 +115,12 @@ docker-php-ext-install intl gd bcmath), `make test` vs known failures, advisory 
 ## State (2026-10-24)
 
 - Published on GHCR, every branch below built and smoke-tested by CI:
+  - 7.0 `-p1` (new, not published yet): Sury 7.0.33-93 (177 patches) + the 7.1 set re-adapted (9001-9024) +
+    GH-14834, mysqlnd double free fix (9025), musl (9026), CVE-2019-18218 (9027, Sury ships it for php7.1 only),
+    gh22186 test without OPENSSL_DONT_ZERO_PAD_KEY (9028, the constant came with 7.1). 66/66 triaged.
+    make test: 67 known failures + bug74093 flaky. jessie specifics, now in the template: its archive signing keys
+    expired (`expired_archive_key` → `APT::Get::AllowUnauthenticated`), GnuPG 1.4 has no `gpgconf` (`gnupg1`), and
+    gcc 4.9 has neither `-Wno-error=incompatible-pointer-types` nor `-std=c++17` (`old_gcc`).
   - 7.1 `-p1` (new): Sury 7.1.33-81 (130 patches) + 24 advisories adapted from the 7.2 fixes (9001-9024, ours
     and Sury's php7.2 ones) + GH-14834, mysqlnd double free fix (9025), musl (9026). 66/66 triaged.
     make test: 72 known failures (2018-era test certificates vs OpenSSL 3.5) + bug74093 flaky.
@@ -122,16 +133,19 @@ docker-php-ext-install intl gd bcmath), `make test` vs known failures, advisory 
     make test: 72 known failures + bug74093 flaky; ASan job green.
   - 7.4 `-p4`, 8.0 `-p2`, 8.1 `-p1` (Sury series + local fixes, see each patches/<v>/local.series).
 - All php-src advisories triaged on every branch (tools/advisory-coverage.py: 0 untriaged).
-- Documented, not fixed (no php-src / Sury fix): 7.1 / 7.2 / 7.3 / 7.4 pdo_firebird `pname[64]` overflow (see Decisions).
+- Documented, not fixed (no php-src / Sury fix): 7.0 / 7.1 / 7.2 / 7.3 / 7.4 pdo_firebird `pname[64]` overflow (see Decisions).
 - Lessons: the 7.3 make test / ASan jobs build with their own configure, not the Dockerfile's: before pushing a new
   branch, also run tools/chroot-test on one current suite (the 7.3 `--with-external-pcre` miss, fixed in 33319722).
   A test that changes the openssl/http ServerClientTestCase.inc must keep fixed-port tests working (Sury 0107 → 0111).
+  Chroot-test the oldest suite too (jessie needed three fixes the newer ones do not), and re-check an adapted
+  backport against the branch's own code: 7.0 has no local `conn` in mysqlnd_stmt_prepare_read_eof() (the 7.1 hunk
+  of 9021 did not even compile), and a test shipped with a Sury patch can use a constant the branch lacks (9028).
 - Name "Mammoth LTS" kept (decided 2026-10-23, after the TMview check: EU mark MAMMOTH 012399895 in classes 9/38/42).
 
 ## Next (agreed with the maintainer)
 
 1. Report the mysqlnd double free of the GHSA-h35g backport privately to Sury (draft /app/report-sury-mysqlnd.txt,
    php7.3 0113 / 7.4 0101 / 8.0 0074; our fix public since 2026-10-22). Not sent yet.
-2. Next branch: 7.0 (last one; same advisory triage); then arm64, cosign/SBOM.
+2. 7.0 is the last branch: committed, waiting for the CI run that publishes it. Then arm64, cosign/SBOM.
 - Context: started for civ-corse (PHP 7.2 FPM on Alpine, CVE-2026-109618/109619); aria-mare (7.4) and civ-corse
   (7.2) run on Mammoth images in production since 2026-10-22.

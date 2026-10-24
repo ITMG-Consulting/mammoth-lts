@@ -1,0 +1,19 @@
+# php-src advisories published after 7.0.33 that no applied patch names (tools/advisory-coverage.py)
+# <GHSA-id> covered|not-affected|wontfix|pending: reason
+GHSA-fjp9-9hwx-59fq not-affected: bug in the mb_encode_mimeheader() rewrite of PHP 8.3 (only 8.3.6 patched), 7.0 encodes through libmbfl (mbfl_mime_header_encode())
+GHSA-hh26-4ppw-5864 wontfix: no php-src fix (any version), timing side channel of RSA PKCS#1 v1.5 decryption (openssl_private_decrypt() default padding, openssl_open()); mitigated by the implicit rejection of OpenSSL >= 3.2: trixie, alpine3.23/3.24 mitigated, bookworm (3.0), stretch, jessie, alpine3.7 (1.0/1.1) exposed; use a mitigated image or OAEP padding
+GHSA-9fcc-425m-g385 not-affected: proc_open() command line escaping on Windows only, and 7.0 has no array command (create_win_command_from_args() came with 7.4)
+GHSA-865w-9rf3-2wh5 not-affected: buffered FPM child logging (zlog_stream, log_buffering) was added in 7.3, 7.0's fpm_stdio_child_said() logs each line through zlog()
+GHSA-p3x9-6h7p-cgfc not-affected: libxml only reads the charset of the HTTP Content-Type response header since 7.4.17 (bug #51903, php-src f901bec494a), 7.0's ext/libxml/libxml.c never inspects the http wrapper headers
+GHSA-rwp7-7vc6-8477 not-affected: ??= live range bug, the ??= operator was added in PHP 7.4
+GHSA-3237-qqm7-mfv7 not-affected: php_read_stream_all_chunks() (getimagesize) does not exist in 7.0
+GHSA-h96m-rvf9-jgm2 not-affected: the overflowing uint32_t sum of the input sizes that array_merge() presizes its result with came in 7.2; 7.0 presizes with the largest input array (init_size) and grows the result through zend_hash, whose resize checks HT_MAX_SIZE
+GHSA-8xr5-qppj-gvwj not-affected: 7.0's PDO quoter handler returns an int that every call site in pdo_sql_parser.re checks; the NULL dereference came with the zend_string* quoter API of PHP 8.1
+GHSA-m8rr-4c36-8gq4 not-affected: negative char passed to ctype.h only reads out of bounds on NetBSD; glibc tables cover -128..255 (documented in ctype.h), musl ctype functions do no memory load (checked by disassembly for 7.2); 7.0's url.c makes the same isxdigit()/tolower() calls, images are Linux only
+GHSA-74r9-qxhc-fx53 not-affected: mbfl_name2encoding_ex() (length-bounded lookup) does not exist in 7.0, mbfl_name2encoding() compares NUL-terminated names
+GHSA-4jhr-8w89-j733 not-affected: the xmlns attribute unlinking in DOMNode::C14N() was added in PHP 8.4, 7.0 calls xmlC14NDocSaveTo() directly
+GHSA-wm6j-2649-pv75 not-affected: the cached MBREX(current_mbctype_mbfl_encoding) pointer was added in PHP 8.0, 7.0's php_mb_check_encoding() looks the encoding up by name and rejects unknown ones
+GHSA-7jrw-539f-x6vr covered: Sury 0229 (openssl_encrypt() AES-WRAP-PAD heap overflow, backported from 8.2.32)
+GHSA-mhmq-mmqj-2v39 not-affected: 7.0 has no SSL peer name reset after a failed TLS setup in the http wrapper (closes the stream and bails out)
+GHSA-x692-q9x7-8c3f not-affected: bc_str2num() fractional_end bookkeeping of the PHP 8.4 bcmath rewrite (only 8.4/8.5 patched)
+GHSA-9f67-6fw4-hpfp not-affected: Windows reserved device names, Windows only

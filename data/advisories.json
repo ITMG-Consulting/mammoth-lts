@@ -5,6 +5,42 @@
   "score": 9.8,
   "severity": "CRITICAL"
  },
+ "CVE-2019-11038": {
+  "published": "2019-06-18",
+  "cvssVersion": "3.0",
+  "score": 3.1,
+  "severity": "LOW"
+ },
+ "CVE-2019-11039": {
+  "published": "2019-06-18",
+  "cvssVersion": "3.0",
+  "score": 4.2,
+  "severity": "MEDIUM"
+ },
+ "CVE-2019-11040": {
+  "published": "2019-06-18",
+  "cvssVersion": "3.0",
+  "score": 4.8,
+  "severity": "MEDIUM"
+ },
+ "CVE-2019-11041": {
+  "published": "2019-08-09",
+  "cvssVersion": "3.0",
+  "score": 4.8,
+  "severity": "MEDIUM"
+ },
+ "CVE-2019-11042": {
+  "published": "2019-08-09",
+  "cvssVersion": "3.0",
+  "score": 4.8,
+  "severity": "MEDIUM"
+ },
+ "CVE-2019-11043": {
+  "published": "2019-10-28",
+  "cvssVersion": "3.1",
+  "score": 8.7,
+  "severity": "HIGH"
+ },
  "CVE-2019-11044": {
   "published": "2019-12-23",
   "cvssVersion": "3.1",
@@ -40,6 +76,48 @@
   "cvssVersion": "3.1",
   "score": 4.8,
   "severity": "MEDIUM"
+ },
+ "CVE-2019-13224": {
+  "published": "2019-07-10",
+  "cvssVersion": null,
+  "score": null,
+  "severity": null
+ },
+ "CVE-2019-18218": {
+  "published": "2019-10-21",
+  "cvssVersion": null,
+  "score": null,
+  "severity": null
+ },
+ "CVE-2019-9020": {
+  "published": "2019-02-22",
+  "cvssVersion": null,
+  "score": null,
+  "severity": null
+ },
+ "CVE-2019-9021": {
+  "published": "2019-02-22",
+  "cvssVersion": null,
+  "score": null,
+  "severity": null
+ },
+ "CVE-2019-9022": {
+  "published": "2019-02-22",
+  "cvssVersion": null,
+  "score": null,
+  "severity": null
+ },
+ "CVE-2019-9023": {
+  "published": "2019-02-22",
+  "cvssVersion": null,
+  "score": null,
+  "severity": null
+ },
+ "CVE-2019-9024": {
+  "published": "2019-02-22",
+  "cvssVersion": null,
+  "score": null,
+  "severity": null
  },
  "CVE-2020-7059": {
   "published": "2020-02-10",

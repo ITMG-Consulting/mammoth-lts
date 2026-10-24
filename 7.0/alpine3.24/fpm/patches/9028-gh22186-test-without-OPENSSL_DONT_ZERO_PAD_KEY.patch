@@ -1,0 +1,30 @@
+Origin: this repository (test-only adaptation of deb.sury.org php7.0 0229, GHSA-7jrw-539f-x6vr)
+Imported-by: OPENSSL_DONT_ZERO_PAD_KEY came with PHP 7.1, so on 7.0 the test only emitted "Use of undefined
+ constant" notices and failed. The key is 16 bytes, exactly the AES-128 key length, so zero padding is a no-op:
+ without the flag the test drives the same wrap-mode path and checks the same overflow.
+
+Subject: gh22186 test: drop OPENSSL_DONT_ZERO_PAD_KEY, undefined in PHP 7.0
+
+diff --git a/ext/openssl/tests/gh22186.phpt b/ext/openssl/tests/gh22186.phpt
+--- a/ext/openssl/tests/gh22186.phpt
++++ b/ext/openssl/tests/gh22186.phpt
+@@ -8,7 +8,7 @@
+  * resolves names via the legacy EVP_get_cipherbyname(), so on some builds the
+  * cipher is listed yet not usable. Probe the actual call path instead. */
+ if (!@openssl_encrypt("test", "aes-128-wrap-pad", str_repeat("k", 16),
+-        OPENSSL_RAW_DATA | OPENSSL_DONT_ZERO_PAD_KEY, str_repeat("\0", 4))) {
++        OPENSSL_RAW_DATA, str_repeat("\0", 4))) {
+     die('skip aes-128-wrap-pad not usable on this OpenSSL build');
+ }
+ ?>
+@@ -19,8 +19,8 @@
+
+ for ($i = 1; $i < 258; $i++) {
+     $data = str_repeat("a", $i);
+-    $enc = openssl_encrypt($data, 'aes-128-wrap-pad', $pass, OPENSSL_RAW_DATA | OPENSSL_DONT_ZERO_PAD_KEY, $iv);
+-    $dec = openssl_decrypt($enc, 'aes-128-wrap-pad', $pass, OPENSSL_RAW_DATA | OPENSSL_DONT_ZERO_PAD_KEY, $iv);
++    $enc = openssl_encrypt($data, 'aes-128-wrap-pad', $pass, OPENSSL_RAW_DATA, $iv);
++    $dec = openssl_decrypt($enc, 'aes-128-wrap-pad', $pass, OPENSSL_RAW_DATA, $iv);
+     if ($dec !== $data) {
+         die("mismatch at $i\n");
+     }

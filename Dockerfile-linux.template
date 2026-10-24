@@ -26,6 +26,19 @@
 		# suites only served by archive.debian.org (security included, as "<suite>/updates")
 		IN(env.suite; "jessie", "stretch", "buster", "bullseye")
 	;
+	def expired_archive_key:
+		# archived suites whose Debian archive signing key has expired: apt cannot authenticate them any more
+		IN(env.suite; "jessie")
+	;
+	def gnupg1:
+		# jessie ships GnuPG 1.4: no gpgconf, and no agent to kill either (as the Docker Hub image of that era)
+		IN(env.suite; "jessie")
+	;
+	def old_gcc:
+		# jessie ships gcc 4.9: no -Wincompatible-pointer-types (gcc 5) and no -std=c++17 (its ICU 52 predates the
+		# C++17 headers of ICU 75 that the flag is there for)
+		IN(env.suite; "jessie")
+	;
 	def gnu_iconv:
 		# GNU libiconv instead of musl's iconv; alpine3.9 (7.1) has no gnu-libiconv package, like the Docker Hub image
 		is_alpine and (env.suite | ltrimstr("alpine") | version_id) >= ("3.10" | version_id)
@@ -60,12 +73,13 @@ FROM {{ env.from }}
 
 {{ if archived_debian then ( -}}
 # {{ env.suite }} is EOL: its packages (security updates included) only remain on archive.debian.org
+{{ if expired_archive_key then "# Debian never renews the signing key of an archived release: the " + env.suite + " keys expired (2020-04-25, 2022-11-19),\n# so apt cannot authenticate archive.debian.org any more. Package integrity rests on the checksums of the Release\n# file, and the PHP sources are verified by their own GPG signature and SHA-256 (below).\n" else "" end -}}
 RUN set -eux; \
 	sed -ri \
 		-e 's!https?://(deb|security)\.debian\.org/!http://archive.debian.org/!' \
 		-e '/-updates/d' \
 		/etc/apt/sources.list; \
-	echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99archive
+	echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99archive{{ if expired_archive_key then "; \\\n\techo 'APT::Get::AllowUnauthenticated \"true\";' >> /etc/apt/apt.conf.d/99archive" else "" end }}
 
 {{ ) else "" end -}}
 {{ if is_alpine then "" else ( -}}
@@ -210,10 +224,13 @@ RUN { \
 # -fpermissive: gcc 14 makes implicit declarations / implicit int errors, which silently fails configure checks
 # (getaddrinfo, pread/pwrite, ZEND_MM_ALIGNMENT, POSIX readdir_r...)
 ENV PHP_CFLAGS="-fstack-protector-strong -fpic -fpie -O2 -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -std=gnu99 -Wno-error=incompatible-pointer-types -fno-strict-aliasing -fpermissive"
+{{ ) elif old_gcc then ( -}}
+# gcc 4.9 has no -Wincompatible-pointer-types to demote (it came with gcc 5)
+ENV PHP_CFLAGS="-fstack-protector-strong -fpic -fpie -O2 -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -std=gnu99 -fno-strict-aliasing"
 {{ ) else ( -}}
 ENV PHP_CFLAGS="-fstack-protector-strong -fpic -fpie -O2 -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -std=gnu99 -Wno-error=incompatible-pointer-types -fno-strict-aliasing"
 {{ ) end -}}
-ENV CXXFLAGS="-fstack-protector-strong -fpic -fpie -O2 -std=c++17"
+ENV CXXFLAGS="-fstack-protector-strong -fpic -fpie -O2{{ if old_gcc then "" else " -std=c++17" end }}"
 {{ if vid >= ("8" | version_id) then ( -}}
 # PHP 8.0 as well (same flags in deb.sury.org php8.0); its ext/intl adds -std=c++11 after CXXFLAGS, ICU_CXXFLAGS comes last
 ENV ICU_CXXFLAGS="-std=c++17"
@@ -346,7 +363,7 @@ RUN set -eux; \
 		gpg --batch --keyserver keyserver.ubuntu.com --recv-keys "$key"; \
 	done; \
 	gpg --batch --verify php.tar.xz.asc php.tar.xz; \
-	gpgconf --kill all; \
+	{{ if gnupg1 then "command -v gpgconf > /dev/null && gpgconf --kill all || :" else "gpgconf --kill all" end }}; \
 	rm -rf "$GNUPGHOME"; \
 	\
 {{ if is_alpine then ( -}}

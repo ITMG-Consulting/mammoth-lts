@@ -1,0 +1,37 @@
+# php-src security fixes published after 7.0's EOL that deb.sury.org has not backported to 7.0
+# (tools/advisory-coverage.py): the 7.1 fixes (ours or deb.sury.org's), adapted to 7.0
+# + 9003: https://github.com/php/php-src/issues/14834 (php-src 67259e45), needed with libxml2 >= 2.13
+9001-GHSA-7qpv-r5mr-78m4-pgsql-e-string-backslash-breakout.patch
+9002-GHSA-vc5h-9ppw-p5f3-phar-circular-symlink-crash.patch
+9003-Fix-GH-14834-libxml2-2.13-entities-in-attributes.patch
+9004-GHSA-3cr5-j632-f35r-null-byte-hostnames.patch
+9005-GHSA-www2-q4fc-65wf-dns-null-byte.patch
+9006-GHSA-vvx9-73fr-5jjx-san-no-cn-fallback.patch
+9007-GHSA-xr7j-rvgx-xq5p-wildcard-oob-read.patch
+9008-GHSA-62xp-839h-2637-fastcgi-ipv6-allowed-clients.patch
+9009-GHSA-ch8v-r6jh-4vvr-sanitize-encoded-0xff.patch
+9010-GHSA-v8xr-gpvj-cx9g-http-header-folding.patch
+9011-GHSA-pcmh-g36c-qc44-http-headers-without-colon.patch
+9012-GHSA-hgf5-96fm-v528-http-user-header-crlf-check.patch
+9013-GHSA-52jp-hrpf-2jff-http-redirect-location-truncation.patch
+9014-GHSA-fpwc-w8rq-cr92-http-strip-credentials-cross-origin-redirect.patch
+9015-GHSA-wg4p-4hqh-c3g9-xml-skip-tagstart-oob.patch
+9016-GHSA-453j-q27h-5p8x-soap-qname-null-deref.patch
+9017-GHSA-cj93-vc83-wgqv-soap-http-body-overflow.patch
+9018-GHSA-rgrp-mwpx-f6rm-soap-unbounded-recursion.patch
+9019-GHSA-j3wh-g957-2m85-phar-tar-entry-injection.patch
+9020-GHSA-h35g-vwh6-m678-mysqlnd-heap-over-reads.patch
+9021-GHSA-r6x9-5r99-36j7-mysqlnd-packet-overreads.patch
+9022-GHSA-hrwm-9436-5mv3-pgsql-escaping-error-checks.patch
+9023-GHSA-w476-322c-wpvm-pdo-firebird-nul-sql-injection.patch
+9024-GHSA-88hq-2827-7pg6-convert-filters-lbchars-nul.patch
+# fix of the mysqlnd GHSA-h35g / GHSA-r6x9 backports (double free of a malformed row's fields before PHP 8.1)
+9025-mysqlnd-do-not-free-malformed-row-fields-twice.patch
+# https://github.com/php/php-src/issues/11678 (php-src 577b8ae422, 8.2+): on musl the fopencookie() seeker takes off_t *
+9026-GH-11678-musl-cookie-seeker.patch
+# deb.sury.org fix carried by its php7.1 series but missing from php7.0 (same bundled libmagic in 7.0)
+# (the other php7.1-only fixes do not apply here: bug #79091 needs the session id collision retry loop added in
+# 7.1, bug #79601 the AEAD cipher modes added in 7.1, bug #79412 the opcache SSA range inference added in 7.1)
+9027-CVE-2019-18218-libmagic-cdf-buffer-overflow.patch
+# test-only: the gh22186 test of deb.sury.org 0229 uses OPENSSL_DONT_ZERO_PAD_KEY, which came with PHP 7.1
+9028-gh22186-test-without-OPENSSL_DONT_ZERO_PAD_KEY.patch
