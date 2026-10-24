@@ -115,7 +115,7 @@ docker-php-ext-install intl gd bcmath), `make test` vs known failures, advisory 
 ## State (2026-10-24)
 
 - Published on GHCR, every branch below built and smoke-tested by CI:
-  - 7.0 `-p1` (new, not published yet): Sury 7.0.33-93 (177 patches) + the 7.1 set re-adapted (9001-9024) +
+  - 7.0 `-p1` (new): Sury 7.0.33-93 (177 patches) + the 7.1 set re-adapted (9001-9024) +
     GH-14834, mysqlnd double free fix (9025), musl (9026), CVE-2019-18218 (9027, Sury ships it for php7.1 only),
     gh22186 test without OPENSSL_DONT_ZERO_PAD_KEY (9028, the constant came with 7.1). 66/66 triaged.
     make test: 67 known failures + bug74093 flaky. jessie specifics, now in the template: its archive signing keys
@@ -146,6 +146,6 @@ docker-php-ext-install intl gd bcmath), `make test` vs known failures, advisory 
 
 1. Report the mysqlnd double free of the GHSA-h35g backport privately to Sury (draft /app/report-sury-mysqlnd.txt,
    php7.3 0113 / 7.4 0101 / 8.0 0074; our fix public since 2026-10-22). Not sent yet.
-2. 7.0 is the last branch: committed, waiting for the CI run that publishes it. Then arm64, cosign/SBOM.
+2. 7.0 was the last branch, published on 2026-10-24. Next: arm64, cosign/SBOM.
 - Context: started for civ-corse (PHP 7.2 FPM on Alpine, CVE-2026-109618/109619); aria-mare (7.4) and civ-corse
   (7.2) run on Mammoth images in production since 2026-10-22.
