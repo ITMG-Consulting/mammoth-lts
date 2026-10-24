@@ -97,17 +97,12 @@ RUN set -eux; \
 		$PHPIZE_DEPS \
 		coreutils \
 		curl-dev \
-		gnu-libiconv-dev \
 		libedit-dev \
 		libxml2-dev \
 		openssl-dev \
 		patch \
 		sqlite-dev \
 	; \
-	\
-# make sure musl's iconv doesn't get used (https://www.php.net/manual/en/intro.iconv.php)
-	rm -vf /usr/include/iconv.h; \
-	ln -sv /usr/include/gnu-libiconv/*.h /usr/include/; \
 	\
 	export \
 		CFLAGS="$PHP_CFLAGS" \
@@ -158,7 +153,7 @@ RUN set -eux; \
 		--with-sqlite3=/usr \
 		\
 		--with-curl \
-		--with-iconv=/usr \
+		--with-iconv \
 		--with-openssl \
 		--with-libedit \
 		--with-zlib \

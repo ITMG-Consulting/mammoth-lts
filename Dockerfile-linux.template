@@ -26,6 +26,10 @@
 		# suites only served by archive.debian.org (security included, as "<suite>/updates")
 		IN(env.suite; "jessie", "stretch", "buster", "bullseye")
 	;
+	def gnu_iconv:
+		# GNU libiconv instead of musl's iconv; alpine3.9 (7.1) has no gnu-libiconv package, like the Docker Hub image
+		is_alpine and (env.suite | ltrimstr("alpine") | version_id) >= ("3.10" | version_id)
+	;
 	def gcc14:
 		# gcc >= 14: alpine 3.21+, debian trixie+
 		if is_alpine then
@@ -388,7 +392,8 @@ RUN set -eux; \
 			if vid >= ("7.2" | version_id) then "argon2-dev" else empty end,
 			"coreutils",
 			"curl-dev",
-			"gnu-libiconv-dev", # https://www.php.net/manual/en/intro.iconv.php "it'd be a good idea to install the GNU libiconv library"
+			# https://www.php.net/manual/en/intro.iconv.php "it'd be a good idea to install the GNU libiconv library"
+			if gnu_iconv then "gnu-libiconv-dev" else empty end,
 			if vid >= ("7.2" | version_id) then "libsodium-dev" else empty end,
 			"libxml2-dev",
 			"openssl-dev",
@@ -423,7 +428,7 @@ RUN set -eux; \
 -}}
 	; \
 	\
-{{ if is_alpine then ( -}}
+{{ if gnu_iconv then ( -}}
 # make sure musl's iconv doesn't get used (https://www.php.net/manual/en/intro.iconv.php)
 	rm -vf /usr/include/iconv.h; \
 {{ if vid < ("8" | version_id) then ( -}}
@@ -499,7 +504,7 @@ RUN set -eux; \
 {{ ) else "" end -}}
 		\
 		--with-curl \
-		--with-iconv{{ if is_alpine then "=/usr" else "" end }} \
+		--with-iconv{{ if gnu_iconv then "=/usr" else "" end }} \
 		--with-openssl \
 		{{ if vid < ("7.3" | version_id) then "--with-libedit" else "--with-readline" end }} \
 		--with-zlib \
