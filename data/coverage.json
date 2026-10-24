@@ -733,7 +733,7 @@
      "8.5.8"
     ],
     "status": "covered",
-    "reason": "Sury 0229 (openssl_encrypt() AES-WRAP-PAD heap overflow, backported from 8.2.32)"
+    "reason": null
    },
    {
     "ghsa": "GHSA-mhmq-mmqj-2v39",
