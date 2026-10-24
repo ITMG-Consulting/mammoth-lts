@@ -27,6 +27,9 @@ declare -A historicSuites=(
 	[8.1]='trixie bookworm alpine3.22 alpine3.21'
 )
 currentSuites='trixie bookworm alpine3.24 alpine3.23'
+# suites docker-library never published for arm64 (no arm64 base image, and none in the arm64v8/ namespace that
+# would keep the "same base as the Hub" rule): built for amd64 only (tools/tags.sh, CI matrix)
+noArm64Suites='jessie'
 
 for version in "${versions[@]}"; do
 	export version
@@ -67,7 +70,7 @@ for version in "${versions[@]}"; do
 	# historic suites first: like on Docker Hub they get the suite-less / "-alpine" tags (tools/tags.sh)
 	suites="$(printf '%s\n' ${historicSuites[$version]} $currentSuites | awk '!seen[$0]++' | paste -sd' ' -)"
 
-	export fullVersion url ascUrl sha256 extraVersion suites currentSuites
+	export fullVersion url ascUrl sha256 extraVersion suites currentSuites noArm64Suites
 	json="$(
 		jq <<<"$json" -c '
 			.[env.version] = {
@@ -79,6 +82,8 @@ for version in "${versions[@]}"; do
 				patches: true,
 				# maintained OS releases: the template builds against their system libraries where Sury does (PCRE)
 				currentSuites: (env.currentSuites | split(" ")),
+				# no arm64 base image for these, see noArm64Suites
+				noArm64Suites: [(env.suites | split(" ")[]) | select(IN(env.noArm64Suites | split(" ")[]))],
 				variants: [
 					# order here controls the order of the library/ file
 					(env.suites | split(" ")[]) as $suite

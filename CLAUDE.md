@@ -51,11 +51,19 @@ in French; README/SECURITY are English (public project).
   messages (maintainer's rule). Pushing needs the maintainer's credentials
   (remote origin is SSH: git@github.com:ITMG-Consulting/mammoth-lts.git).
 - Variants: cli, fpm, zts, apache (Debian only), as upstream had for these branches.
+- Architectures: `linux/amd64` + `linux/arm64`, each built on its own native runner (`ubuntu-24.04-arm`, free and
+  unlimited on public repos); never QEMU, compiling PHP emulated is hopeless. Exception **7.0 jessie, amd64 only**:
+  docker-library has no arm64 `debian:jessie-slim` (`arm64v8/debian:jessie-slim` exists but drops the "same base as
+  the Hub" rule). Declared in `versions.sh` (`noArm64Suites`) -> `versions.json`, read by the CI matrix. All the
+  other suites are proven ground: the Hub published arm64 for every one of these tags. Decided 2026-10-24.
 - Public repo https://github.com/ITMG-Consulting/mammoth-lts: CI/CD = GitHub Actions, registry = GHCR
   `ghcr.io/itmg-consulting/mammoth-lts` (GITHUB_TOKEN, image name lowercased). Free for public repos, arm64 runners
   included. No self-hosted registry.
 - CI builds only what changed on PR/push (generated dirs touched, or known-test-failures for `make test`); weekly
   schedule and manual runs rebuild everything; changes to tools/run-php-tests.sh, tools/tags.sh or the workflow rebuild all.
+  `build` and `publish` run one job per (dir, architecture): `publish` pushes each architecture untagged, by digest,
+  and the `manifest` job turns the digests of a dir into the manifest list its tags point to. `make test` and `asan`
+  stay amd64: they test the sources, not the image.
   A push diffs against the last successful CI run on main (not the previous push, which left the images of a failed
   run unpublished on 2026-10-23); no such run in the history (e.g. after a force-push) = rebuild all.
 
@@ -146,6 +154,7 @@ docker-php-ext-install intl gd bcmath), `make test` vs known failures, advisory 
 
 1. Report the mysqlnd double free of the GHSA-h35g backport privately to Sury (draft /app/report-sury-mysqlnd.txt,
    php7.3 0113 / 7.4 0101 / 8.0 0074; our fix public since 2026-10-22). Not sent yet.
-2. 7.0 was the last branch, published on 2026-10-24. Next: arm64, cosign/SBOM.
+2. 7.0 was the last branch, published on 2026-10-24. arm64 added the same day (CI not yet run on a full
+   rebuild). Next: cosign/SBOM.
 - Context: started for civ-corse (PHP 7.2 FPM on Alpine, CVE-2026-109618/109619); aria-mare (7.4) and civ-corse
   (7.2) run on Mammoth images in production since 2026-10-22.

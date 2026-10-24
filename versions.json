@@ -12,6 +12,9 @@
       "alpine3.24",
       "alpine3.23"
     ],
+    "noArm64Suites": [
+      "jessie"
+    ],
     "variants": [
       "stretch/cli",
       "stretch/apache",
@@ -53,6 +56,7 @@
       "alpine3.24",
       "alpine3.23"
     ],
+    "noArm64Suites": [],
     "variants": [
       "buster/cli",
       "buster/apache",
@@ -97,6 +101,7 @@
       "alpine3.24",
       "alpine3.23"
     ],
+    "noArm64Suites": [],
     "variants": [
       "buster/cli",
       "buster/apache",
@@ -141,6 +146,7 @@
       "alpine3.24",
       "alpine3.23"
     ],
+    "noArm64Suites": [],
     "variants": [
       "bullseye/cli",
       "bullseye/apache",
@@ -185,6 +191,7 @@
       "alpine3.24",
       "alpine3.23"
     ],
+    "noArm64Suites": [],
     "variants": [
       "bullseye/cli",
       "bullseye/apache",
@@ -229,6 +236,7 @@
       "alpine3.24",
       "alpine3.23"
     ],
+    "noArm64Suites": [],
     "variants": [
       "bullseye/cli",
       "bullseye/apache",
@@ -270,6 +278,7 @@
       "alpine3.24",
       "alpine3.23"
     ],
+    "noArm64Suites": [],
     "variants": [
       "trixie/cli",
       "trixie/apache",

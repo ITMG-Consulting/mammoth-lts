@@ -257,7 +257,8 @@ Images are rebuilt weekly for base image updates: the PHP inside a `-pN` tag nev
 ### Available tags
 
 Per base image and variant: the tag of the current patch level (pins that exact PHP build), then the branch tags,
-which always point to the latest build. Images are `linux/amd64`.
+which always point to the latest build. Images are `linux/amd64` and `linux/arm64`, except the 7.0 `jessie` tags
+(`linux/amd64` only: docker-library never published an arm64 `debian:jessie-slim`).
 
 <!-- tags:start (tools/readme-tags.sh) -->
 ### 7.0 (`7.0.33-p1`)
