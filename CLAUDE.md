@@ -107,16 +107,22 @@ musl/glibc chmod via /proc/self/fd → tar-noproc-wrapper; php-fpm -t error_log 
 CI (GitHub Actions) is the real check: build, smoke (`php -v` = version + `-pN`, php-fpm -t,
 docker-php-ext-install intl gd bcmath), `make test` vs known failures, advisory coverage.
 
-## State (2026-10-23)
+## State (2026-10-24)
 
-- Published on GHCR, CI run 39949325143 green (272 jobs, every image rebuilt):
+- Published on GHCR, every branch below built and smoke-tested by CI:
+  - 7.1 `-p1` (new): Sury 7.1.33-81 (130 patches) + 24 advisories adapted from the 7.2 fixes (9001-9024, ours
+    and Sury's php7.2 ones) + GH-14834, mysqlnd double free fix (9025), musl (9026). 66/66 triaged.
+    make test: 72 known failures (2018-era test certificates vs OpenSSL 3.5) + bug74093 flaky.
+    PHP < 7.2 specifics, now in the template: phpdbg needs readline, `docker-php-ext-enable` writes
+    `extension=<name>.so` (no short names), `make test` needs its directories created. alpine3.9 needs
+    the musl iconv of the Docker Hub image.
   - 7.2 `-p5`: Sury 7.2.34-66 + 21 php-src backports (9002-9022) + mysqlnd double free fix (9023) + GH-11678 musl.
   - 7.3 `-p1` (new): Sury 7.3.33-35 (82 patches) + 20 advisories through Sury's php7.4 backports adapted to 7.3
     (9001-9020, 9005 = test infra of Sury 0111) + GH-14834, double free fix (9022), musl (9023). 66/66 triaged.
     make test: 72 known failures + bug74093 flaky; ASan job green.
   - 7.4 `-p4`, 8.0 `-p2`, 8.1 `-p1` (Sury series + local fixes, see each patches/<v>/local.series).
 - All php-src advisories triaged on every branch (tools/advisory-coverage.py: 0 untriaged).
-- Documented, not fixed (no php-src / Sury fix): 7.2 / 7.3 / 7.4 pdo_firebird `pname[64]` overflow (see Decisions).
+- Documented, not fixed (no php-src / Sury fix): 7.1 / 7.2 / 7.3 / 7.4 pdo_firebird `pname[64]` overflow (see Decisions).
 - Lessons: the 7.3 make test / ASan jobs build with their own configure, not the Dockerfile's: before pushing a new
   branch, also run tools/chroot-test on one current suite (the 7.3 `--with-external-pcre` miss, fixed in 33319722).
   A test that changes the openssl/http ServerClientTestCase.inc must keep fixed-port tests working (Sury 0107 → 0111).
@@ -126,6 +132,6 @@ docker-php-ext-install intl gd bcmath), `make test` vs known failures, advisory 
 
 1. Report the mysqlnd double free of the GHSA-h35g backport privately to Sury (draft /app/report-sury-mysqlnd.txt,
    php7.3 0113 / 7.4 0101 / 8.0 0074; our fix public since 2026-10-22). Not sent yet.
-2. Next branches: 7.1 → 7.0 (same advisory triage per branch); then arm64, cosign/SBOM.
+2. Next branch: 7.0 (last one; same advisory triage); then arm64, cosign/SBOM.
 - Context: started for civ-corse (PHP 7.2 FPM on Alpine, CVE-2026-109618/109619); aria-mare (7.4) and civ-corse
   (7.2) run on Mammoth images in production since 2026-10-22.
