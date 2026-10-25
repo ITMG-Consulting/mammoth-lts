@@ -4,7 +4,7 @@
     "url": "https://www.php.net/distributions/php-7.0.33.tar.xz",
     "ascUrl": "https://www.php.net/distributions/php-7.0.33.tar.xz.asc",
     "sha256": "ab8c5be6e32b1f8d032909dedaaaa4bbb1a209e519abb01a52ce3914f9a13d96",
-    "extraVersion": "-p1",
+    "extraVersion": "-p2",
     "patches": true,
     "currentSuites": [
       "trixie",
@@ -138,7 +138,7 @@
     "url": "https://www.php.net/distributions/php-7.3.33.tar.xz",
     "ascUrl": "https://www.php.net/distributions/php-7.3.33.tar.xz.asc",
     "sha256": "166eaccde933381da9516a2b70ad0f447d7cec4b603d07b9a916032b215b90cc",
-    "extraVersion": "-p1",
+    "extraVersion": "-p2",
     "patches": true,
     "currentSuites": [
       "trixie",

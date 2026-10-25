@@ -203,3 +203,4 @@
 9026-GH-11678-musl-cookie-seeker.patch
 9027-CVE-2019-18218-libmagic-cdf-buffer-overflow.patch
 9028-gh22186-test-without-OPENSSL_DONT_ZERO_PAD_KEY.patch
+9029-soap-tmp_soap-at-function-scope-in-SoapServer-handle.patch

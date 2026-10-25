@@ -261,17 +261,17 @@ which always point to the latest build. Images are `linux/amd64` and `linux/arm6
 (`linux/amd64` only: docker-library never published an arm64 `debian:jessie-slim`).
 
 <!-- tags:start (tools/readme-tags.sh) -->
-### 7.0 (`7.0.33-p1`)
+### 7.0 (`7.0.33-p2`)
 
 | | `cli` | `fpm` | `zts` | `apache` |
 | --- | --- | --- | --- | --- |
-| stretch | `7.0.33-p1-cli-stretch`<br>`7.0-cli-stretch`<br>`7.0-stretch`<br>`7.0-cli`<br>`7.0` | `7.0.33-p1-fpm-stretch`<br>`7.0-fpm-stretch`<br>`7.0-fpm` | `7.0.33-p1-zts-stretch`<br>`7.0-zts-stretch`<br>`7.0-zts` | `7.0.33-p1-apache-stretch`<br>`7.0-apache-stretch`<br>`7.0-apache` |
-| jessie | `7.0.33-p1-cli-jessie`<br>`7.0-cli-jessie`<br>`7.0-jessie` | `7.0.33-p1-fpm-jessie`<br>`7.0-fpm-jessie` | `7.0.33-p1-zts-jessie`<br>`7.0-zts-jessie` | `7.0.33-p1-apache-jessie`<br>`7.0-apache-jessie` |
-| alpine3.7 | `7.0.33-p1-cli-alpine3.7`<br>`7.0-cli-alpine3.7`<br>`7.0-alpine3.7`<br>`7.0-cli-alpine`<br>`7.0-alpine` | `7.0.33-p1-fpm-alpine3.7`<br>`7.0-fpm-alpine3.7`<br>`7.0-fpm-alpine` | `7.0.33-p1-zts-alpine3.7`<br>`7.0-zts-alpine3.7`<br>`7.0-zts-alpine` |  |
-| trixie | `7.0.33-p1-cli-trixie`<br>`7.0-cli-trixie`<br>`7.0-trixie` | `7.0.33-p1-fpm-trixie`<br>`7.0-fpm-trixie` | `7.0.33-p1-zts-trixie`<br>`7.0-zts-trixie` | `7.0.33-p1-apache-trixie`<br>`7.0-apache-trixie` |
-| bookworm | `7.0.33-p1-cli-bookworm`<br>`7.0-cli-bookworm`<br>`7.0-bookworm` | `7.0.33-p1-fpm-bookworm`<br>`7.0-fpm-bookworm` | `7.0.33-p1-zts-bookworm`<br>`7.0-zts-bookworm` | `7.0.33-p1-apache-bookworm`<br>`7.0-apache-bookworm` |
-| alpine3.24 | `7.0.33-p1-cli-alpine3.24`<br>`7.0-cli-alpine3.24`<br>`7.0-alpine3.24` | `7.0.33-p1-fpm-alpine3.24`<br>`7.0-fpm-alpine3.24` | `7.0.33-p1-zts-alpine3.24`<br>`7.0-zts-alpine3.24` |  |
-| alpine3.23 | `7.0.33-p1-cli-alpine3.23`<br>`7.0-cli-alpine3.23`<br>`7.0-alpine3.23` | `7.0.33-p1-fpm-alpine3.23`<br>`7.0-fpm-alpine3.23` | `7.0.33-p1-zts-alpine3.23`<br>`7.0-zts-alpine3.23` |  |
+| stretch | `7.0.33-p2-cli-stretch`<br>`7.0-cli-stretch`<br>`7.0-stretch`<br>`7.0-cli`<br>`7.0` | `7.0.33-p2-fpm-stretch`<br>`7.0-fpm-stretch`<br>`7.0-fpm` | `7.0.33-p2-zts-stretch`<br>`7.0-zts-stretch`<br>`7.0-zts` | `7.0.33-p2-apache-stretch`<br>`7.0-apache-stretch`<br>`7.0-apache` |
+| jessie | `7.0.33-p2-cli-jessie`<br>`7.0-cli-jessie`<br>`7.0-jessie` | `7.0.33-p2-fpm-jessie`<br>`7.0-fpm-jessie` | `7.0.33-p2-zts-jessie`<br>`7.0-zts-jessie` | `7.0.33-p2-apache-jessie`<br>`7.0-apache-jessie` |
+| alpine3.7 | `7.0.33-p2-cli-alpine3.7`<br>`7.0-cli-alpine3.7`<br>`7.0-alpine3.7`<br>`7.0-cli-alpine`<br>`7.0-alpine` | `7.0.33-p2-fpm-alpine3.7`<br>`7.0-fpm-alpine3.7`<br>`7.0-fpm-alpine` | `7.0.33-p2-zts-alpine3.7`<br>`7.0-zts-alpine3.7`<br>`7.0-zts-alpine` |  |
+| trixie | `7.0.33-p2-cli-trixie`<br>`7.0-cli-trixie`<br>`7.0-trixie` | `7.0.33-p2-fpm-trixie`<br>`7.0-fpm-trixie` | `7.0.33-p2-zts-trixie`<br>`7.0-zts-trixie` | `7.0.33-p2-apache-trixie`<br>`7.0-apache-trixie` |
+| bookworm | `7.0.33-p2-cli-bookworm`<br>`7.0-cli-bookworm`<br>`7.0-bookworm` | `7.0.33-p2-fpm-bookworm`<br>`7.0-fpm-bookworm` | `7.0.33-p2-zts-bookworm`<br>`7.0-zts-bookworm` | `7.0.33-p2-apache-bookworm`<br>`7.0-apache-bookworm` |
+| alpine3.24 | `7.0.33-p2-cli-alpine3.24`<br>`7.0-cli-alpine3.24`<br>`7.0-alpine3.24` | `7.0.33-p2-fpm-alpine3.24`<br>`7.0-fpm-alpine3.24` | `7.0.33-p2-zts-alpine3.24`<br>`7.0-zts-alpine3.24` |  |
+| alpine3.23 | `7.0.33-p2-cli-alpine3.23`<br>`7.0-cli-alpine3.23`<br>`7.0-alpine3.23` | `7.0.33-p2-fpm-alpine3.23`<br>`7.0-fpm-alpine3.23` | `7.0.33-p2-zts-alpine3.23`<br>`7.0-zts-alpine3.23` |  |
 
 ### 7.1 (`7.1.33-p1`)
 
@@ -299,18 +299,18 @@ which always point to the latest build. Images are `linux/amd64` and `linux/arm6
 | alpine3.24 | `7.2.34-p5-cli-alpine3.24`<br>`7.2-cli-alpine3.24`<br>`7.2-alpine3.24` | `7.2.34-p5-fpm-alpine3.24`<br>`7.2-fpm-alpine3.24` | `7.2.34-p5-zts-alpine3.24`<br>`7.2-zts-alpine3.24` |  |
 | alpine3.23 | `7.2.34-p5-cli-alpine3.23`<br>`7.2-cli-alpine3.23`<br>`7.2-alpine3.23` | `7.2.34-p5-fpm-alpine3.23`<br>`7.2-fpm-alpine3.23` | `7.2.34-p5-zts-alpine3.23`<br>`7.2-zts-alpine3.23` |  |
 
-### 7.3 (`7.3.33-p1`)
+### 7.3 (`7.3.33-p2`)
 
 | | `cli` | `fpm` | `zts` | `apache` |
 | --- | --- | --- | --- | --- |
-| bullseye | `7.3.33-p1-cli-bullseye`<br>`7.3-cli-bullseye`<br>`7.3-bullseye`<br>`7.3-cli`<br>`7.3` | `7.3.33-p1-fpm-bullseye`<br>`7.3-fpm-bullseye`<br>`7.3-fpm` | `7.3.33-p1-zts-bullseye`<br>`7.3-zts-bullseye`<br>`7.3-zts` | `7.3.33-p1-apache-bullseye`<br>`7.3-apache-bullseye`<br>`7.3-apache` |
-| buster | `7.3.33-p1-cli-buster`<br>`7.3-cli-buster`<br>`7.3-buster` | `7.3.33-p1-fpm-buster`<br>`7.3-fpm-buster` | `7.3.33-p1-zts-buster`<br>`7.3-zts-buster` | `7.3.33-p1-apache-buster`<br>`7.3-apache-buster` |
-| alpine3.15 | `7.3.33-p1-cli-alpine3.15`<br>`7.3-cli-alpine3.15`<br>`7.3-alpine3.15`<br>`7.3-cli-alpine`<br>`7.3-alpine` | `7.3.33-p1-fpm-alpine3.15`<br>`7.3-fpm-alpine3.15`<br>`7.3-fpm-alpine` | `7.3.33-p1-zts-alpine3.15`<br>`7.3-zts-alpine3.15`<br>`7.3-zts-alpine` |  |
-| alpine3.14 | `7.3.33-p1-cli-alpine3.14`<br>`7.3-cli-alpine3.14`<br>`7.3-alpine3.14` | `7.3.33-p1-fpm-alpine3.14`<br>`7.3-fpm-alpine3.14` | `7.3.33-p1-zts-alpine3.14`<br>`7.3-zts-alpine3.14` |  |
-| trixie | `7.3.33-p1-cli-trixie`<br>`7.3-cli-trixie`<br>`7.3-trixie` | `7.3.33-p1-fpm-trixie`<br>`7.3-fpm-trixie` | `7.3.33-p1-zts-trixie`<br>`7.3-zts-trixie` | `7.3.33-p1-apache-trixie`<br>`7.3-apache-trixie` |
-| bookworm | `7.3.33-p1-cli-bookworm`<br>`7.3-cli-bookworm`<br>`7.3-bookworm` | `7.3.33-p1-fpm-bookworm`<br>`7.3-fpm-bookworm` | `7.3.33-p1-zts-bookworm`<br>`7.3-zts-bookworm` | `7.3.33-p1-apache-bookworm`<br>`7.3-apache-bookworm` |
-| alpine3.24 | `7.3.33-p1-cli-alpine3.24`<br>`7.3-cli-alpine3.24`<br>`7.3-alpine3.24` | `7.3.33-p1-fpm-alpine3.24`<br>`7.3-fpm-alpine3.24` | `7.3.33-p1-zts-alpine3.24`<br>`7.3-zts-alpine3.24` |  |
-| alpine3.23 | `7.3.33-p1-cli-alpine3.23`<br>`7.3-cli-alpine3.23`<br>`7.3-alpine3.23` | `7.3.33-p1-fpm-alpine3.23`<br>`7.3-fpm-alpine3.23` | `7.3.33-p1-zts-alpine3.23`<br>`7.3-zts-alpine3.23` |  |
+| bullseye | `7.3.33-p2-cli-bullseye`<br>`7.3-cli-bullseye`<br>`7.3-bullseye`<br>`7.3-cli`<br>`7.3` | `7.3.33-p2-fpm-bullseye`<br>`7.3-fpm-bullseye`<br>`7.3-fpm` | `7.3.33-p2-zts-bullseye`<br>`7.3-zts-bullseye`<br>`7.3-zts` | `7.3.33-p2-apache-bullseye`<br>`7.3-apache-bullseye`<br>`7.3-apache` |
+| buster | `7.3.33-p2-cli-buster`<br>`7.3-cli-buster`<br>`7.3-buster` | `7.3.33-p2-fpm-buster`<br>`7.3-fpm-buster` | `7.3.33-p2-zts-buster`<br>`7.3-zts-buster` | `7.3.33-p2-apache-buster`<br>`7.3-apache-buster` |
+| alpine3.15 | `7.3.33-p2-cli-alpine3.15`<br>`7.3-cli-alpine3.15`<br>`7.3-alpine3.15`<br>`7.3-cli-alpine`<br>`7.3-alpine` | `7.3.33-p2-fpm-alpine3.15`<br>`7.3-fpm-alpine3.15`<br>`7.3-fpm-alpine` | `7.3.33-p2-zts-alpine3.15`<br>`7.3-zts-alpine3.15`<br>`7.3-zts-alpine` |  |
+| alpine3.14 | `7.3.33-p2-cli-alpine3.14`<br>`7.3-cli-alpine3.14`<br>`7.3-alpine3.14` | `7.3.33-p2-fpm-alpine3.14`<br>`7.3-fpm-alpine3.14` | `7.3.33-p2-zts-alpine3.14`<br>`7.3-zts-alpine3.14` |  |
+| trixie | `7.3.33-p2-cli-trixie`<br>`7.3-cli-trixie`<br>`7.3-trixie` | `7.3.33-p2-fpm-trixie`<br>`7.3-fpm-trixie` | `7.3.33-p2-zts-trixie`<br>`7.3-zts-trixie` | `7.3.33-p2-apache-trixie`<br>`7.3-apache-trixie` |
+| bookworm | `7.3.33-p2-cli-bookworm`<br>`7.3-cli-bookworm`<br>`7.3-bookworm` | `7.3.33-p2-fpm-bookworm`<br>`7.3-fpm-bookworm` | `7.3.33-p2-zts-bookworm`<br>`7.3-zts-bookworm` | `7.3.33-p2-apache-bookworm`<br>`7.3-apache-bookworm` |
+| alpine3.24 | `7.3.33-p2-cli-alpine3.24`<br>`7.3-cli-alpine3.24`<br>`7.3-alpine3.24` | `7.3.33-p2-fpm-alpine3.24`<br>`7.3-fpm-alpine3.24` | `7.3.33-p2-zts-alpine3.24`<br>`7.3-zts-alpine3.24` |  |
+| alpine3.23 | `7.3.33-p2-cli-alpine3.23`<br>`7.3-cli-alpine3.23`<br>`7.3-alpine3.23` | `7.3.33-p2-fpm-alpine3.23`<br>`7.3-fpm-alpine3.23` | `7.3.33-p2-zts-alpine3.23`<br>`7.3-zts-alpine3.23` |  |
 
 ### 7.4 (`7.4.33-p4`)
 

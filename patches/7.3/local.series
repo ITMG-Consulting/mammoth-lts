@@ -25,3 +25,5 @@
 9022-mysqlnd-do-not-free-malformed-row-fields-twice.patch
 # https://github.com/php/php-src/issues/11678 (php-src 577b8ae422, 8.2+): on musl the fopencookie() seeker takes off_t *
 9023-GH-11678-musl-cookie-seeker.patch
+# fix of the GHSA-r6x9 backport's error path: 7.3 efree()s the pool-allocated MYSQLND_RES (bad free)
+9024-mysqlnd-free-the-prepare-result-through-its-destructor.patch

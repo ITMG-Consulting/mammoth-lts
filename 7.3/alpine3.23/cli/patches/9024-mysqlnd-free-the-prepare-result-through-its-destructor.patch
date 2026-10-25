@@ -1,0 +1,37 @@
+Origin: mammoth-lts, fix of a PHP 7.3 bug the backport of GHSA-r6x9-5r99-36j7 (deb.sury.org php7.4 0149) makes reachable
+
+From: Mathieu GILLOOTS <mathieu@itmg-consulting.com>
+Date: Sat, 25 Oct 2026 20:00:00 +0000
+Subject: [PATCH] mysqlnd: free the prepare result through its destructor
+
+Since PHP 7.3 mysqlnd_result_init() carves the MYSQLND_RES out of the result set's memory pool
+(pool->get_chunk()) instead of allocating it with mnd_pecalloc(), but the error path of
+mysqlnd_stmt_prepare_read_eof() kept calling mnd_efree() on it: freeing a pointer into the middle of the
+pool's arena. PHP 7.4 fixed it by destroying the pool in free_result_contents_internal() and dropping the
+free; 7.3 still has the stale free, and 7.3's free_result_contents() destroys neither the pool nor the
+connection reference the result holds.
+
+Unreachable in practice before the advisory fix, which added the regression tests that make a server reply
+with a short EOF packet after the prepare metadata: AddressSanitizer then reports "attempting free on
+address which was not malloc()-ed" (bad free a malicious server, or a man-in-the-middle on a plaintext
+connection, controls). free_result_internal() is the result's own destructor: it releases the connection
+reference and destroys the pool, which frees the MYSQLND_RES with it. Its skip_result() step is a no-op
+here, the result set has no data yet. PHP 7.0-7.2 are not affected (MYSQLND_RES still comes from
+mnd_pecalloc(), their mnd_pefree() is correct), 7.4+ no longer have the free.
+---
+ ext/mysqlnd/mysqlnd_ps.c | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
+
+diff --git a/ext/mysqlnd/mysqlnd_ps.c b/ext/mysqlnd/mysqlnd_ps.c
+--- a/ext/mysqlnd/mysqlnd_ps.c
++++ b/ext/mysqlnd/mysqlnd_ps.c
+@@ -340,8 +340,7 @@ mysqlnd_stmt_prepare_read_eof(MYSQLND_STMT * s)
+ 	conn->payload_decoder_factory->m.init_eof_packet(&fields_eof);
+ 	if (FAIL == (ret = PACKET_READ(conn, &fields_eof))) {
+ 		if (stmt->result) {
+-			stmt->result->m.free_result_contents(stmt->result);
+-			mnd_efree(stmt->result);
++			stmt->result->m.free_result_internal(stmt->result);
+ 			/* The memset() below resets the statement, so release what it still owns first. */
+ 			conn->m->free_reference(conn);
+ 			mnd_efree(stmt->execute_cmd_buffer.buffer);

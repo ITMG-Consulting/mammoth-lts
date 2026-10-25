@@ -123,13 +123,17 @@ musl/glibc chmod via /proc/self/fd → tar-noproc-wrapper; php-fpm -t error_log 
 CI (GitHub Actions) is the real check: build, smoke (`php -v` = version + `-pN`, php-fpm -t,
 docker-php-ext-install intl gd bcmath), `make test` vs known failures, advisory coverage.
 
-## State (2026-10-24)
+## State (2026-10-25)
 
 - Published on GHCR, every branch below built and smoke-tested by CI:
-  - 7.0 `-p1` (new): Sury 7.0.33-93 (177 patches) + the 7.1 set re-adapted (9001-9024) +
+  - 7.0 `-p2`: Sury 7.0.33-93 (177 patches) + the 7.1 set re-adapted (9001-9024) +
     GH-14834, mysqlnd double free fix (9025), musl (9026), CVE-2019-18218 (9027, Sury ships it for php7.1 only),
-    gh22186 test without OPENSSL_DONT_ZERO_PAD_KEY (9028, the constant came with 7.1). 66/66 triaged.
-    make test: 67 known failures + bug74093 flaky. jessie specifics, now in the template: its archive signing keys
+    gh22186 test without OPENSSL_DONT_ZERO_PAD_KEY (9028, the constant came with 7.1), soap tmp_soap scope
+    (9029). 66/66 triaged. make test: 67 known failures + bug74093 flaky.
+    ASan (2026-10-25): stack-use-after-scope in SoapServer::handle(). 7.0 declares the `zval tmp_soap` holding a
+    SOAP_CLASS instance inside the `if (soap_obj == NULL)` block but dereferences soap_obj (= &tmp_soap) through
+    the rest of the function; PHP 7.1 declares it at function scope and renames the session branch's pointer to
+    tmp_soap_p, 9029 is that change. Upstream 7.0 bug, reached by the GHSA-85c2-q967-79q5 test of Sury 0223. jessie specifics, now in the template: its archive signing keys
     expired (`expired_archive_key` → `APT::Get::AllowUnauthenticated`), GnuPG 1.4 has no `gpgconf` (`gnupg1`), and
     gcc 4.9 has neither `-Wno-error=incompatible-pointer-types` nor `-std=c++17` (`old_gcc`).
   - 7.1 `-p1` (new): Sury 7.1.33-81 (130 patches) + 24 advisories adapted from the 7.2 fixes (9001-9024, ours
@@ -139,13 +143,20 @@ docker-php-ext-install intl gd bcmath), `make test` vs known failures, advisory 
     `extension=<name>.so` (no short names), `make test` needs its directories created. alpine3.9 needs
     the musl iconv of the Docker Hub image.
   - 7.2 `-p5`: Sury 7.2.34-66 + 21 php-src backports (9002-9022) + mysqlnd double free fix (9023) + GH-11678 musl.
-  - 7.3 `-p1` (new): Sury 7.3.33-35 (82 patches) + 20 advisories through Sury's php7.4 backports adapted to 7.3
-    (9001-9020, 9005 = test infra of Sury 0111) + GH-14834, double free fix (9022), musl (9023). 66/66 triaged.
-    make test: 72 known failures + bug74093 flaky; ASan job green.
+  - 7.3 `-p2`: Sury 7.3.33-35 (82 patches) + 20 advisories through Sury's php7.4 backports adapted to 7.3
+    (9001-9020, 9005 = test infra of Sury 0111) + GH-14834, double free fix (9022), musl (9023), prepare error
+    path fix (9024). 66/66 triaged. make test: 72 known failures + bug74093 flaky.
+    ASan (2026-10-25): bad free in mysqlnd_stmt_prepare_read_eof(). Since 7.3 the MYSQLND_RES is carved out of the
+    result set's memory pool (mysqlnd_result_init), so the mnd_efree() the error path still does frees a pointer
+    into the arena; 7.4 destroys the pool in free_result_contents_internal() and dropped the free. Upstream 7.3
+    bug, not Sury's, but the GHSA-r6x9 tests reach it -> 9024 calls free_result_internal() (the destructor:
+    connection reference + pool). 7.0-7.2 are not affected, their MYSQLND_RES is still mnd_pecalloc()'d.
   - 7.4 `-p4`, 8.0 `-p2`, 8.1 `-p1` (Sury series + local fixes, see each patches/<v>/local.series).
 - All php-src advisories triaged on every branch (tools/advisory-coverage.py: 0 untriaged).
 - Documented, not fixed (no php-src / Sury fix): 7.0 / 7.1 / 7.2 / 7.3 / 7.4 pdo_firebird `pname[64]` overflow (see Decisions).
-- Lessons: the 7.3 make test / ASan jobs build with their own configure, not the Dockerfile's: before pushing a new
+- Lessons: `asan`, `advisories`, `sury` and `upstream` are `continue-on-error`, the job shows a green check even
+  when the step fails: read its annotations, not the check mark.
+  The 7.3 make test / ASan jobs build with their own configure, not the Dockerfile's: before pushing a new
   branch, also run tools/chroot-test on one current suite (the 7.3 `--with-external-pcre` miss, fixed in 33319722).
   A test that changes the openssl/http ServerClientTestCase.inc must keep fixed-port tests working (Sury 0107 → 0111).
   Chroot-test the oldest suite too (jessie needed three fixes the newer ones do not), and re-check an adapted
@@ -157,7 +168,13 @@ docker-php-ext-install intl gd bcmath), `make test` vs known failures, advisory 
 
 1. Report the mysqlnd double free of the GHSA-h35g backport privately to Sury (draft /app/report-sury-mysqlnd.txt,
    php7.3 0113 / 7.4 0101 / 8.0 0074; our fix public since 2026-10-22). Not sent yet.
-2. 7.0 was the last branch, published on 2026-10-24. arm64 added the same day (CI not yet run on a full
-   rebuild). Next: cosign/SBOM.
+2. 7.0 was the last branch, published on 2026-10-24. arm64 added the same day; its first full rebuild hit the
+   256-job matrix cap, fixed on 2026-10-25 (one workflow call per architecture). Next: cosign/SBOM.
+3. 9029 (7.0 soap) is not compile-checked yet: this dev container kills long background builds, and the 7.0
+   series takes a full rebuild. Either rerun `ASAN=0 tools/run-asan-tests.sh 7.0` in one go, or let the CI
+   `asan 7.0` job answer. 9024 (7.3) is checked: builds, and the 141 tests fail identically with and without it.
+4. To decide: same class of bad free still open upstream in `mysqlnd_result.c`, `mnd_efree(conn->current_result)`
+   on the read_result_metadata() failure path (7.3, 7.4 and 8.0; gone in 8.1). Pool-allocated like the one 9024
+   fixes, but no test of the series reaches it, so ASan does not report it.
 - Context: started for civ-corse (PHP 7.2 FPM on Alpine, CVE-2026-109618/109619); aria-mare (7.4) and civ-corse
   (7.2) run on Mammoth images in production since 2026-10-22.

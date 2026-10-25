@@ -35,3 +35,5 @@
 9027-CVE-2019-18218-libmagic-cdf-buffer-overflow.patch
 # test-only: the gh22186 test of deb.sury.org 0229 uses OPENSSL_DONT_ZERO_PAD_KEY, which came with PHP 7.1
 9028-gh22186-test-without-OPENSSL_DONT_ZERO_PAD_KEY.patch
+# upstream 7.0 bug the GHSA-85c2 test reaches: SoapServer::handle() uses tmp_soap after its block (PHP 7.1's fix)
+9029-soap-tmp_soap-at-function-scope-in-SoapServer-handle.patch

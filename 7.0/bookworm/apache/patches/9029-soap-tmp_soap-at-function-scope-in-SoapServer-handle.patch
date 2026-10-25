@@ -1,0 +1,61 @@
+Origin: mammoth-lts, PHP 7.1's scope fix for SoapServer::handle() backported to 7.0
+
+From: Mathieu GILLOOTS <mathieu@itmg-consulting.com>
+Date: Sat, 25 Oct 2026 21:30:00 +0000
+Subject: [PATCH] soap: give tmp_soap the lifetime SoapServer::handle() needs
+
+In 7.0 SoapServer::handle() declares the "zval tmp_soap" that holds a SOAP_CLASS instance inside the
+"if (soap_obj == NULL)" block, sets soap_obj to its address, and keeps dereferencing soap_obj long after
+the block ends (function_table, the call itself, and every zval_ptr_dtor(soap_obj) of the error paths):
+the object's lifetime ends with the block, so these are reads of a dead stack slot, which the compiler is
+free to have reused. AddressSanitizer reports stack-use-after-scope when the regression test of
+GHSA-85c2-q967-79q5 (deb.sury.org 0223) exercises SOAP_CLASS.
+
+PHP 7.1 declares tmp_soap at function scope instead, and renames the session branch's pointer of the same
+name to tmp_soap_p so it no longer shadows it. Same change here, 7.0 is the only branch still missing it.
+---
+ ext/soap/soap.c | 14 +++++++-------
+ 1 file changed, 7 insertions(+), 7 deletions(-)
+
+diff --git a/ext/soap/soap.c b/ext/soap/soap.c
+--- a/ext/soap/soap.c
++++ b/ext/soap/soap.c
+@@ -1535,6 +1535,7 @@
+ 	xmlCharEncodingHandlerPtr old_encoding;
+ 	HashTable *old_class_map, *old_typemap;
+ 	int old_features;
++	zval tmp_soap;
+ 
+ 	SOAP_SERVER_BEGIN_CODE();
+ 
+@@ -1698,8 +1699,7 @@
+ #if HAVE_PHP_SESSION && !defined(COMPILE_DL_SESSION)
+ 		/* If persistent then set soap_obj from from the previous created session (if available) */
+ 		if (service->soap_class.persistence == SOAP_PERSISTENCE_SESSION) {
+-			zval *tmp_soap;
+-			zval *session_vars;
++			zval *session_vars, *tmp_soap_p;
+ 
+ 			if (PS(session_status) != php_session_active &&
+ 			    PS(session_status) != php_session_disabled) {
+@@ -1710,16 +1710,15 @@
+ 			session_vars = &PS(http_session_vars);
+ 			ZVAL_DEREF(session_vars);
+ 			if (Z_TYPE_P(session_vars) == IS_ARRAY &&
+-			    (tmp_soap = zend_hash_str_find(Z_ARRVAL_P(session_vars), "_bogus_session_name", sizeof("_bogus_session_name")-1)) != NULL &&
+-			    Z_TYPE_P(tmp_soap) == IS_OBJECT &&
+-			    Z_OBJCE_P(tmp_soap) == service->soap_class.ce) {
+-				soap_obj = tmp_soap;
++			    (tmp_soap_p = zend_hash_str_find(Z_ARRVAL_P(session_vars), "_bogus_session_name", sizeof("_bogus_session_name")-1)) != NULL &&
++			    Z_TYPE_P(tmp_soap_p) == IS_OBJECT &&
++			    Z_OBJCE_P(tmp_soap_p) == service->soap_class.ce) {
++				soap_obj = tmp_soap_p;
+ 			}
+ 		}
+ #endif
+ 		/* If new session or something weird happned */
+ 		if (soap_obj == NULL) {
+-			zval tmp_soap;
+ 
+ 			object_init_ex(&tmp_soap, service->soap_class.ce);
+ 

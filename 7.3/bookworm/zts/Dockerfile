@@ -65,7 +65,7 @@ ENV PHP_LDFLAGS="-Wl,-O1 -pie"
 
 ENV GPG_KEYS CBAF69F173A0FEA4B537F470D66C9593118BCCB6 F38252826ACD957EF380D39F2F7956BC5DA04B5D
 
-ENV PHP_VERSION 7.3.33-p1
+ENV PHP_VERSION 7.3.33-p2
 ENV PHP_URL="https://www.php.net/distributions/php-7.3.33.tar.xz" PHP_ASC_URL="https://www.php.net/distributions/php-7.3.33.tar.xz.asc"
 ENV PHP_SHA256="166eaccde933381da9516a2b70ad0f447d7cec4b603d07b9a916032b215b90cc"
 
@@ -200,10 +200,10 @@ RUN set -eux; \
 	; \
 # "php -v" / PHP_VERSION report the patch level of this build, e.g. 7.2.34-p3 (> 7.2.34 for version_compare() and composer)
 	sed -ri \
-		-e 's/^(#define PHP_EXTRA_VERSION ).*/\1"-p1"/' \
-		-e 's/^(#define PHP_VERSION "[0-9.]+).*/\1-p1"/' \
+		-e 's/^(#define PHP_EXTRA_VERSION ).*/\1"-p2"/' \
+		-e 's/^(#define PHP_VERSION "[0-9.]+).*/\1-p2"/' \
 		main/php_version.h; \
-	grep -q '^#define PHP_VERSION "7.3.33-p1"$' main/php_version.h; \
+	grep -q '^#define PHP_VERSION "7.3.33-p2"$' main/php_version.h; \
 	make -j "$(nproc)"; \
 	find -type f -name '*.a' -delete; \
 	make install; \
