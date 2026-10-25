@@ -35,8 +35,10 @@ jobs:
       actions: read
     outputs:
       dirs: ${{ steps.dirs.outputs.dirs }}
-      targets: ${{ steps.dirs.outputs.targets }}
+      dirs_arm64: ${{ steps.dirs.outputs.dirs_arm64 }}
       versions: ${{ steps.dirs.outputs.versions }}
+      image: ${{ steps.dirs.outputs.image }}
+      description: ${{ steps.dirs.outputs.description }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -73,60 +75,39 @@ jobs:
           fi
           # known-test-failures is not part of the build context, only of the make test job
           tests="$(git diff --name-only "${BASE:-HEAD}" HEAD 2> /dev/null | sed -n 's#^patches/\([^/]*\)/known-test-failures$#\1#p' | jq -Rc '[., inputs]' 2> /dev/null || echo '[]')"
-          # one target per architecture: amd64 everywhere, arm64 where the base image has it (noArm64Suites)
-          targets="$(jq -c --slurpfile v versions.json '[
+          # amd64 everywhere, arm64 where the base image has it (noArm64Suites); build and publish take one
+          # architecture each, a matrix is capped at 256 jobs and (dirs x architectures) is above that
+          dirs_arm64="$(jq -c --slurpfile v versions.json '[
             .[]
+            | . as $d
             | split("/") as $p
-            | { dir: ., arch: "amd64", runner: "ubuntu-latest" },
-              (if ($v[0][$p[0]].noArm64Suites // []) | index($p[1]) then empty
-               else { dir: ., arch: "arm64", runner: "ubuntu-24.04-arm" } end)
+            | if ($v[0][$p[0]].noArm64Suites // []) | index($p[1]) then empty else $d end
           ]' <<< "$dirs")"
+          n="$(jq length <<< "$dirs")"; [ "$n" -le 256 ] || { echo >&2 "error: $n dirs, over the 256-job matrix cap: split build/publish further"; exit 1; }
           {
             echo "dirs=$dirs"
-            echo "targets=$targets"
+            echo "dirs_arm64=$dirs_arm64"
             echo "versions=$(jq -c --argjson tests "${tests:-[]}" '[(.[] | split("/")[0]), ($tests[] | select(. != ""))] | unique' <<< "$dirs")"
+            echo "image=${IMAGE,,}"
+            echo "description=$DESCRIPTION"
           } >> "$GITHUB_OUTPUT"
 
-  build:
+  # native runners, never QEMU: compiling PHP emulated would be an order of magnitude slower
+  build-amd64:
     needs: generate
     if: needs.generate.outputs.dirs != '[]'
-    strategy:
-      fail-fast: false
-      matrix:
-        target: ${{ fromJson(needs.generate.outputs.targets) }}
-    name: ${{ matrix.target.dir }} ${{ matrix.target.arch }}
-    # native runners: compiling PHP under QEMU would be an order of magnitude slower
-    runs-on: ${{ matrix.target.runner }}
-    steps:
-      - uses: actions/checkout@v5
-      - name: Build
-        run: docker build --pull --tag "test:${{ github.run_id }}" "${{ matrix.target.dir }}"
-      - name: Smoke tests
-        run: |
-          version="${{ matrix.target.dir }}"; version="${version%%/*}"
-          expected="$(jq -r --arg v "$version" '.[$v].version + .[$v].extraVersion' versions.json)"
-          img="test:${{ github.run_id }}"
-          docker run --rm "$img" php -v | tee /dev/stderr | grep -F "PHP $expected "
-          docker run --rm "$img" php -r 'exit(PHP_VERSION === getenv("PHP_VERSION") ? 0 : 1);'
-          docker run --rm "$img" php -m
-          case "${{ matrix.target.dir }}" in
-            */fpm) docker run --rm "$img" php-fpm -t ;;
-            */apache) docker run --rm "$img" apache2ctl -t ;;
-          esac
-          # extensions users build on top of the image (pecl, docker-php-ext-*), exercise C++ (intl) and pkg-config detection (gd)
-          case "${{ matrix.target.dir }}" in
-            */alpine*) deps='apk add --no-cache icu-dev freetype-dev libjpeg-turbo-dev libpng-dev' ;;
-            # libfreetype-dev only exists since bullseye (libfreetype6-dev before)
-            *) deps='apt-get update && apt-get install -y --no-install-recommends libicu-dev libjpeg-dev libpng-dev $(apt-cache show libfreetype-dev > /dev/null 2>&1 && echo libfreetype-dev || echo libfreetype6-dev)' ;;
-          esac
-          # gd < 7.4 takes --with-freetype-dir, 7.4+ --with-freetype
-          docker run --rm "$img" sh -euxc "
-            $deps
-            docker-php-ext-configure gd --with-freetype-dir=/usr --with-jpeg-dir=/usr 2> /dev/null || docker-php-ext-configure gd --with-freetype --with-jpeg
-            docker-php-ext-install -j\$(nproc) intl gd bcmath
-            php -m | grep -E '^(intl|gd|bcmath)$' | wc -l | grep -qx 3
-            php -r 'exit(gd_info()[\"FreeType Support\"] ? 0 : 1);'
-          "
+    uses: ./.github/workflows/build.yml
+    with:
+      dirs: ${{ needs.generate.outputs.dirs }}
+      runner: ubuntu-latest
+
+  build-arm64:
+    needs: generate
+    if: needs.generate.outputs.dirs_arm64 != '[]'
+    uses: ./.github/workflows/build.yml
+    with:
+      dirs: ${{ needs.generate.outputs.dirs_arm64 }}
+      runner: ubuntu-24.04-arm
 
   php-tests:
     needs: generate
@@ -189,56 +170,37 @@ jobs:
       - run: tools/upstream-review.sh --diff
         continue-on-error: true
 
-  publish:
+  publish-amd64:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && needs.generate.outputs.dirs != '[]' && !failure() && !cancelled()
-    needs: [generate, build, php-tests]
-    strategy:
-      fail-fast: false
-      matrix:
-        target: ${{ fromJson(needs.generate.outputs.targets) }}
-    name: publish ${{ matrix.target.dir }} ${{ matrix.target.arch }}
-    runs-on: ${{ matrix.target.runner }}
+    needs: [generate, build-amd64, build-arm64, php-tests]
     permissions:
       contents: read
       packages: write
-    steps:
-      - uses: actions/checkout@v5
-      # push-by-digest needs a driver that can output to a registry: the default "docker" driver cannot
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      # each architecture is pushed untagged, by digest; the "manifest" job assembles the tags from the digests
-      - name: Build and push by digest
-        id: push
-        run: |
-          IMAGE="${IMAGE,,}"
-          docker buildx build --pull \
-            --platform "linux/${{ matrix.target.arch }}" \
-            --label org.opencontainers.image.source="${{ github.server_url }}/${{ github.repository }}" \
-            --label org.opencontainers.image.revision="${{ github.sha }}" \
-            --label org.opencontainers.image.description="$DESCRIPTION" \
-            --label org.opencontainers.image.licenses="PHP-3.01" \
-            --provenance=false \
-            --metadata-file metadata.json \
-            --output "type=image,name=$IMAGE,push-by-digest=true,name-canonical=true,push=true" \
-            "${{ matrix.target.dir }}"
-          digest="$(jq -r '."containerimage.digest"' metadata.json)"
-          [ -n "$digest" ] && [ "$digest" != null ]
-          mkdir -p digests && echo "$digest" > "digests/${digest#sha256:}"
-          echo "slug=$(tr / - <<< '${{ matrix.target.dir }}')" >> "$GITHUB_OUTPUT"
-      - uses: actions/upload-artifact@v4
-        with:
-          name: digest-${{ steps.push.outputs.slug }}-${{ matrix.target.arch }}
-          path: digests/*
-          if-no-files-found: error
-          retention-days: 1
+    uses: ./.github/workflows/publish.yml
+    with:
+      dirs: ${{ needs.generate.outputs.dirs }}
+      arch: amd64
+      runner: ubuntu-latest
+      image: ${{ needs.generate.outputs.image }}
+      description: ${{ needs.generate.outputs.description }}
+
+  publish-arm64:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && needs.generate.outputs.dirs_arm64 != '[]' && !failure() && !cancelled()
+    needs: [generate, build-amd64, build-arm64, php-tests]
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/publish.yml
+    with:
+      dirs: ${{ needs.generate.outputs.dirs_arm64 }}
+      arch: arm64
+      runner: ubuntu-24.04-arm
+      image: ${{ needs.generate.outputs.image }}
+      description: ${{ needs.generate.outputs.description }}
 
   manifest:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && needs.generate.outputs.dirs != '[]' && !failure() && !cancelled()
-    needs: [generate, publish]
+    needs: [generate, publish-amd64, publish-arm64]
     strategy:
       fail-fast: false
       matrix:

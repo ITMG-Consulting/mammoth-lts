@@ -61,8 +61,11 @@ in French; README/SECURITY are English (public project).
   included. No self-hosted registry.
 - CI builds only what changed on PR/push (generated dirs touched, or known-test-failures for `make test`); weekly
   schedule and manual runs rebuild everything; changes to tools/run-php-tests.sh, tools/tags.sh or the workflow rebuild all.
-  `build` and `publish` run one job per (dir, architecture): `publish` pushes each architecture untagged, by digest,
-  and the `manifest` job turns the digests of a dir into the manifest list its tags point to. `make test` and `asan`
+  `build` and `publish` run one job per (dir, architecture), as reusable workflows (`.github/workflows/build.yml`,
+  `publish.yml`) called once per architecture: a matrix is capped at **256 jobs** and dirs x architectures is above
+  that (360 on a full rebuild, which is what broke the first arm64 run on 2026-10-24; `generate` now fails early if
+  the dir list alone passes 256). `publish` pushes each architecture untagged, by digest, and the `manifest` job
+  turns the digests of a dir into the manifest list its tags point to. `make test` and `asan`
   stay amd64: they test the sources, not the image.
   A push diffs against the last successful CI run on main (not the previous push, which left the images of a failed
   run unpublished on 2026-10-23); no such run in the history (e.g. after a force-push) = rebuild all.
