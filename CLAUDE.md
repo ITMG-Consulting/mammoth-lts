@@ -156,6 +156,10 @@ docker-php-ext-install intl gd bcmath), `make test` vs known failures, advisory 
 - Documented, not fixed (no php-src / Sury fix): 7.0 / 7.1 / 7.2 / 7.3 / 7.4 pdo_firebird `pname[64]` overflow (see Decisions).
 - Lessons: `asan`, `advisories`, `sury` and `upstream` are `continue-on-error`, the job shows a green check even
   when the step fails: read its annotations, not the check mark.
+  tools/run-asan-tests.sh wipes /build before extracting and keeps patch's output (fixed 2026-10-26): a tree left
+  by a previous run made `patch` refuse to create the .phpt files the series adds, and `patch` reports that on
+  stdout, which the script sent to /dev/null -> the run died with exit 1 and an empty log. Invisible in CI, whose
+  container is fresh every time.
   The 7.3 make test / ASan jobs build with their own configure, not the Dockerfile's: before pushing a new
   branch, also run tools/chroot-test on one current suite (the 7.3 `--with-external-pcre` miss, fixed in 33319722).
   A test that changes the openssl/http ServerClientTestCase.inc must keep fixed-port tests working (Sury 0107 → 0111).
@@ -170,10 +174,7 @@ docker-php-ext-install intl gd bcmath), `make test` vs known failures, advisory 
    php7.3 0113 / 7.4 0101 / 8.0 0074; our fix public since 2026-10-22). Not sent yet.
 2. 7.0 was the last branch, published on 2026-10-24. arm64 added the same day; its first full rebuild hit the
    256-job matrix cap, fixed on 2026-10-25 (one workflow call per architecture). Next: cosign/SBOM.
-3. 9029 (7.0 soap) is not compile-checked yet: this dev container kills long background builds, and the 7.0
-   series takes a full rebuild. Either rerun `ASAN=0 tools/run-asan-tests.sh 7.0` in one go, or let the CI
-   `asan 7.0` job answer. 9024 (7.3) is checked: builds, and the 141 tests fail identically with and without it.
-4. To decide: same class of bad free still open upstream in `mysqlnd_result.c`, `mnd_efree(conn->current_result)`
+3. To decide: same class of bad free still open upstream in `mysqlnd_result.c`, `mnd_efree(conn->current_result)`
    on the read_result_metadata() failure path (7.3, 7.4 and 8.0; gone in 8.1). Pool-allocated like the one 9024
    fixes, but no test of the series reaches it, so ASan does not report it.
 - Context: started for civ-corse (PHP 7.2 FPM on Alpine, CVE-2026-109618/109619); aria-mare (7.4) and civ-corse

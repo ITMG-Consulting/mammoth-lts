@@ -21,12 +21,17 @@ sha256="$(jq -r --arg v "$version" '.[$v].sha256' "$src/versions.json")"
 cflags="$(sed -n 's/^ENV PHP_CFLAGS="\(.*\)"$/\1/p' "$src/$version/bookworm/cli/Dockerfile")"
 [ "${ASAN:-1}" = 0 ] || cflags="$cflags -fsanitize=address -fno-omit-frame-pointer -g"
 
+# a tree left by a previous run (another branch, same /build) makes patch refuse to create the .phpt files a
+# series adds: start from an empty directory, the CI container is fresh but a local re-run is not
+rm -rf /build
 mkdir -p /build && cd /build
 curl -fsSL -o php.tar.xz "$url"
 echo "$sha256 *php.tar.xz" | sha256sum -c -
 tar -xJf php.tar.xz --strip-components=1
 grep -vE '^\s*(#|$)' "$src/patches/$version/series" | while read -r p; do
-	patch -p1 --no-backup-if-mismatch < "$src/patches/$version/$p" > /dev/null
+	# patch reports a refusal on stdout, not stderr: without this the series would fail with no message at all
+	patch -p1 --no-backup-if-mismatch < "$src/patches/$version/$p" > /tmp/patch.log 2>&1 \
+		|| { echo >&2 "error: $p does not apply:"; cat >&2 /tmp/patch.log; exit 1; }
 done
 grep -qs 'PKG_PROG_PKG_CONFIG' acinclude.m4 build/*.m4 || cat /usr/share/aclocal/pkg.m4 >> acinclude.m4
 ./buildconf --force > /dev/null 2>&1
