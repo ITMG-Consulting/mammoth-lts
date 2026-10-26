@@ -78,6 +78,10 @@ in French; README/SECURITY are English (public project).
   pkg.m4, so `/usr/share/aclocal/pkg.m4` is appended to `acinclude.m4` (buildconf **and** phpize build aclocal.m4
   from it), then `./buildconf --force` (needs autoconf + make).
 - Patched tree is re-packed into `/usr/src/php.tar.xz` so `docker-php-ext-install` builds patched extensions.
+- PHP source signature: `gpg --recv-keys` fails intermittently on the CI runners (`keyserver receive failed`,
+  seen on 8.1/trixie arm64 2026-10-26), so the fetch retries 3 rounds over keyserver.ubuntu.com, keys.openpgp.org
+  and pgp.mit.edu, then `gpg --list-keys` makes the build fail if no server answered. The signature check itself
+  stays mandatory (the pinned sha256 is not a substitute).
 - libxml2 ≥ 2.13 breaks ext/xml entity handling (PEAR install fails): php-src 67259e45 (GH-14834) as 9001 for 7.2.
 - Debian jessie/stretch/buster/bullseye: sources rewritten to archive.debian.org (`archived_debian`), no `-updates`
   (bullseye LTS ended 2026-08: deb.debian.org pool files already 404). jessie on top of that: Debian never renews

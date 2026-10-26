@@ -360,7 +360,14 @@ RUN set -eux; \
 	curl -fsSL -o php.tar.xz.asc "$PHP_ASC_URL"; \
 	export GNUPGHOME="$(mktemp -d)"; \
 	for key in $GPG_KEYS; do \
-		gpg --batch --keyserver keyserver.ubuntu.com --recv-keys "$key"; \
+# the keyservers fail intermittently ("keyserver receive failed"): retry, and fall back to other servers
+		for attempt in 1 2 3; do \
+			for server in keyserver.ubuntu.com keys.openpgp.org pgp.mit.edu; do \
+				gpg --batch --keyserver "$server" --recv-keys "$key" && break 2 || :; \
+			done; \
+			sleep 5; \
+		done; \
+		gpg --batch --list-keys "$key" > /dev/null; \
 	done; \
 	gpg --batch --verify php.tar.xz.asc php.tar.xz; \
 	{{ if gnupg1 then "command -v gpgconf > /dev/null && gpgconf --kill all || :" else "gpgconf --kill all" end }}; \
