@@ -84,7 +84,9 @@ in French; README/SECURITY are English (public project).
   stays mandatory (the pinned sha256 is not a substitute).
 - libxml2 ≥ 2.13 breaks ext/xml entity handling (PEAR install fails): php-src 67259e45 (GH-14834) as 9001 for 7.2.
 - Debian jessie/stretch/buster/bullseye: sources rewritten to archive.debian.org (`archived_debian`), no `-updates`
-  (bullseye LTS ended 2026-08: deb.debian.org pool files already 404). jessie on top of that: Debian never renews
+  (bullseye LTS ended 2026-08: deb.debian.org pool files already 404). Its CDN resets pipelined transfers mid-download
+  (`read (104: Connection reset by peer)` on libc6-dev, 7.4/bullseye/zts amd64 2026-10-27), so the `99archive` conf
+  also sets `Acquire::http::Pipeline-Depth "0"` and `Acquire::Retries "5"`. jessie on top of that: Debian never renews
   the signing key of an archived release, so apt can no longer authenticate the archive
   (`expired_archive_key` → `APT::Get::AllowUnauthenticated`; the PHP sources keep their GPG + SHA-256 check).
 - Alpine < 3.14 has no `www-data` group in baselayout.
