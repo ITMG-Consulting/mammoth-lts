@@ -82,6 +82,12 @@ in French; README/SECURITY are English (public project).
   seen on 8.1/trixie arm64 2026-10-26), so the fetch retries 3 rounds over keyserver.ubuntu.com, keys.openpgp.org
   and pgp.mit.edu, then `gpg --list-keys` makes the build fail if no server answered. The signature check itself
   stays mandatory (the pinned sha256 is not a substitute).
+- The other pool-allocated bad free, `mnd_efree(conn->current_result)` on the `read_result_metadata()` failure path
+  of `mysqlnd_result.c`, needs nothing: it is a one-line hunk of GHSA-h35g-vwh6-m678 (php-src 2f5aa9f9d1), replaced
+  by `free_result(conn->current_result, TRUE)`. Applied on every branch (Sury 0113 / 0101 / 0074 for 7.3 / 7.4 / 8.0,
+  our 9020 / 9020 / 9018 for 7.0 / 7.1 / 7.2, native in 8.1 since 8.1.31), and safe on each: 7.3+ guard
+  `result->conn` before dereferencing it and destroy the pool, 7.0-7.2 `mnd_pefree()` the (non-pooled) MYSQLND_RES
+  in free_result_internal(). Checked 2026-10-27, do not re-analyse.
 - libxml2 ≥ 2.13 breaks ext/xml entity handling (PEAR install fails): php-src 67259e45 (GH-14834) as 9001 for 7.2.
 - Debian jessie/stretch/buster/bullseye: sources rewritten to archive.debian.org (`archived_debian`), no `-updates`
   (bullseye LTS ended 2026-08: deb.debian.org pool files already 404). Its CDN resets pipelined transfers mid-download
@@ -180,8 +186,5 @@ docker-php-ext-install intl gd bcmath), `make test` vs known failures, advisory 
    php7.3 0113 / 7.4 0101 / 8.0 0074; our fix public since 2026-10-22). Not sent yet.
 2. 7.0 was the last branch, published on 2026-10-24. arm64 added the same day; its first full rebuild hit the
    256-job matrix cap, fixed on 2026-10-25 (one workflow call per architecture). Next: cosign/SBOM.
-3. To decide: same class of bad free still open upstream in `mysqlnd_result.c`, `mnd_efree(conn->current_result)`
-   on the read_result_metadata() failure path (7.3, 7.4 and 8.0; gone in 8.1). Pool-allocated like the one 9024
-   fixes, but no test of the series reaches it, so ASan does not report it.
 - Context: started for civ-corse (PHP 7.2 FPM on Alpine, CVE-2026-109618/109619); aria-mare (7.4) and civ-corse
   (7.2) run on Mammoth images in production since 2026-10-22.
