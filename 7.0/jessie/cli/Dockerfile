@@ -7,6 +7,7 @@
 FROM debian:jessie-slim
 
 # jessie is EOL: its packages (security updates included) only remain on archive.debian.org
+# (which resets pipelined connections mid-download, "read (104: Connection reset by peer)": no pipelining, and retry)
 # Debian never renews the signing key of an archived release: the jessie keys expired (2020-04-25, 2022-11-19),
 # so apt cannot authenticate archive.debian.org any more. Package integrity rests on the checksums of the Release
 # file, and the PHP sources are verified by their own GPG signature and SHA-256 (below).
@@ -15,8 +16,12 @@ RUN set -eux; \
 		-e 's!https?://(deb|security)\.debian\.org/!http://archive.debian.org/!' \
 		-e '/-updates/d' \
 		/etc/apt/sources.list; \
-	echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99archive; \
-	echo 'APT::Get::AllowUnauthenticated "true";' >> /etc/apt/apt.conf.d/99archive
+	{ \
+		echo 'Acquire::Check-Valid-Until "false";'; \
+		echo 'Acquire::http::Pipeline-Depth "0";'; \
+		echo 'Acquire::Retries "5";'; \
+		echo 'APT::Get::AllowUnauthenticated "true";'; \
+	} > /etc/apt/apt.conf.d/99archive
 
 # prevent Debian's PHP packages from being installed
 # https://github.com/docker-library/php/pull/542
