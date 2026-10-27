@@ -73,13 +73,19 @@ FROM {{ env.from }}
 
 {{ if archived_debian then ( -}}
 # {{ env.suite }} is EOL: its packages (security updates included) only remain on archive.debian.org
+# (which resets pipelined connections mid-download, "read (104: Connection reset by peer)": no pipelining, and retry)
 {{ if expired_archive_key then "# Debian never renews the signing key of an archived release: the " + env.suite + " keys expired (2020-04-25, 2022-11-19),\n# so apt cannot authenticate archive.debian.org any more. Package integrity rests on the checksums of the Release\n# file, and the PHP sources are verified by their own GPG signature and SHA-256 (below).\n" else "" end -}}
 RUN set -eux; \
 	sed -ri \
 		-e 's!https?://(deb|security)\.debian\.org/!http://archive.debian.org/!' \
 		-e '/-updates/d' \
 		/etc/apt/sources.list; \
-	echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99archive{{ if expired_archive_key then "; \\\n\techo 'APT::Get::AllowUnauthenticated \"true\";' >> /etc/apt/apt.conf.d/99archive" else "" end }}
+	{ \
+		echo 'Acquire::Check-Valid-Until "false";'; \
+		echo 'Acquire::http::Pipeline-Depth "0";'; \
+		echo 'Acquire::Retries "5";'; \
+{{ if expired_archive_key then "\t\techo 'APT::Get::AllowUnauthenticated \"true\";'; \\\n" else "" end -}}
+	} > /etc/apt/apt.conf.d/99archive
 
 {{ ) else "" end -}}
 {{ if is_alpine then "" else ( -}}

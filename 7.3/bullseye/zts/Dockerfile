@@ -7,12 +7,17 @@
 FROM debian:bullseye-slim
 
 # bullseye is EOL: its packages (security updates included) only remain on archive.debian.org
+# (which resets pipelined connections mid-download, "read (104: Connection reset by peer)": no pipelining, and retry)
 RUN set -eux; \
 	sed -ri \
 		-e 's!https?://(deb|security)\.debian\.org/!http://archive.debian.org/!' \
 		-e '/-updates/d' \
 		/etc/apt/sources.list; \
-	echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99archive
+	{ \
+		echo 'Acquire::Check-Valid-Until "false";'; \
+		echo 'Acquire::http::Pipeline-Depth "0";'; \
+		echo 'Acquire::Retries "5";'; \
+	} > /etc/apt/apt.conf.d/99archive
 
 # prevent Debian's PHP packages from being installed
 # https://github.com/docker-library/php/pull/542
